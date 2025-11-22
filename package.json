@@ -1,0 +1,42 @@
+{
+  "name": "internet-business-manager",
+  "version": "1.0.0",
+  "description": "Internet Business Manager - Cosmos Backend",
+  "main": "dist/main.js",
+  "scripts": {
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "build": "nest build",
+    "start:prod": "node dist/main.js"
+  },
+  "dependencies": {
+    "@nestjs/common": "^9.4.3",
+    "@nestjs/core": "^9.4.3",
+    "@nestjs/jwt": "^9.0.0",
+    "@nestjs/passport": "^9.0.0",
+    "@nestjs/platform-express": "^9.4.3",
+    "@nestjs/schedule": "^2.0.0",
+    "africastalking": "^0.7.6",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.0",
+    "dotenv": "^16.0.0",
+    "node-schedule": "^2.1.0",
+    "passport": "^0.6.0",
+    "passport-jwt": "^4.0.1",
+    "passport-local": "^1.0.0",
+    "reflect-metadata": "^0.1.14",
+    "rimraf": "^3.0.2",
+    "rxjs": "^7.8.2",
+    "sqlite3": "^5.1.2",
+    "typeorm": "^0.3.12"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^9.0.0",
+    "@types/passport": "^1.0.17",
+    "@types/passport-jwt": "^4.0.1",
+    "@types/passport-local": "^1.0.38",
+    "concurrently": "^9.2.1",
+    "ts-node": "^10.0.0",
+    "typescript": "^5.0.0"
+  }
+}
