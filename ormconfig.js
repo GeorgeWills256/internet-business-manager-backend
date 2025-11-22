@@ -1,7 +1,7 @@
 module.exports = {
-  type: 'sqlite',
-  database: process.env.DB_PATH || './data/ibm.sqlite',
-  synchronize: true,
+  type: 'postgres',
+  url: process.env.DATABASE_URL, // <- Use DATABASE_URL from Render
+  synchronize: true,            // For dev; in production, consider migrations
   logging: false,
-  entities: [__dirname + '/dist/**/*.entity.js', __dirname + '/src/**/*.entity.ts'],
+  entities: ['dist/**/*.entity.js'],
 };
