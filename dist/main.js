@@ -9,7 +9,8 @@ async function bootstrap() {
     app.enableCors();
     const port = process.env.PORT || 3000;
     await app.listen(port);
-    console.log(`Backend running at ${process.env.SERVER_BASE_URL || 'http://localhost:' + port}`);
+    const serverUrl = process.env.SERVER_BASE_URL || `http://localhost:${port}`;
+    console.log(`Backend running at ${serverUrl}`);
 }
 bootstrap();
 //# sourceMappingURL=main.js.map
