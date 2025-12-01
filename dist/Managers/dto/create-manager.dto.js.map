@@ -1,1 +1,1 @@
-{"version":3,"file":"create-manager.dto.js","sourceRoot":"","sources":["../../../src/Managers/dto/create-manager.dto.ts"],"names":[],"mappings":";;;AAAA,MAAa,gBAAgB;CAG5B;AAHD,4CAGC"}
+{"version":3,"file":"create-manager.dto.js","sourceRoot":"","sources":["../../../src/managers/dto/create-manager.dto.ts"],"names":[],"mappings":";;;AAAA,MAAa,gBAAgB;CAG5B;AAHD,4CAGC"}
