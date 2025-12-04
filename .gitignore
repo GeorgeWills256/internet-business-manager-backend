@@ -2,7 +2,7 @@
 /node_modules/
 
 # production build
-/dist/
+# dist   <-- remove this line completely
 
 # environment files
 .env
