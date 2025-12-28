@@ -19,37 +19,17 @@ __decorate([
     __metadata("design:type", Number)
 ], ServiceFeeSummary.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Number)
-], ServiceFeeSummary.prototype, "manager_id", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Date)
-], ServiceFeeSummary.prototype, "period_start", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Date)
-], ServiceFeeSummary.prototype, "period_end", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: 'real', default: 0 }),
-    __metadata("design:type", Number)
-], ServiceFeeSummary.prototype, "total_subscriptions_amount", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: 'real', default: 0 }),
-    __metadata("design:type", Number)
-], ServiceFeeSummary.prototype, "admin_fee_amount", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ default: false }),
-    __metadata("design:type", Boolean)
-], ServiceFeeSummary.prototype, "is_settled", void 0);
-__decorate([
     (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Date)
-], ServiceFeeSummary.prototype, "settled_at", void 0);
+    __metadata("design:type", Number)
+], ServiceFeeSummary.prototype, "managerId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'integer' }),
+    __metadata("design:type", Number)
+], ServiceFeeSummary.prototype, "amount", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)
-], ServiceFeeSummary.prototype, "created_at", void 0);
+], ServiceFeeSummary.prototype, "createdAt", void 0);
 exports.ServiceFeeSummary = ServiceFeeSummary = __decorate([
     (0, typeorm_1.Entity)()
 ], ServiceFeeSummary);

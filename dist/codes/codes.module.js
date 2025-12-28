@@ -8,20 +8,23 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CodesModule = void 0;
 const common_1 = require("@nestjs/common");
+const typeorm_1 = require("@nestjs/typeorm");
+const code_entity_1 = require("../entities/code.entity");
+const manager_entity_1 = require("../entities/manager.entity");
 const codes_service_1 = require("./codes.service");
 const codes_controller_1 = require("./codes.controller");
-const africas_talking_module_1 = require("../africas-talking/africas-talking.module");
-const managers_module_1 = require("../managers/managers.module");
 const subscribers_module_1 = require("../subscribers/subscribers.module");
 let CodesModule = class CodesModule {
 };
 exports.CodesModule = CodesModule;
 exports.CodesModule = CodesModule = __decorate([
     (0, common_1.Module)({
-        imports: [africas_talking_module_1.AfricasTalkingModule, managers_module_1.ManagersModule, subscribers_module_1.SubscribersModule],
+        imports: [
+            typeorm_1.TypeOrmModule.forFeature([code_entity_1.Code, manager_entity_1.Manager]),
+            subscribers_module_1.SubscribersModule,
+        ],
         controllers: [codes_controller_1.CodesController],
         providers: [codes_service_1.CodesService],
-        exports: [codes_service_1.CodesService],
     })
 ], CodesModule);
 //# sourceMappingURL=codes.module.js.map

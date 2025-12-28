@@ -1,40 +1,36 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  Index,
+} from 'typeorm';
+import { Manager } from './manager.entity';
 
 @Entity()
 export class Subscriber {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  manager_id: number;
-
+  @Index()
   @Column()
   phone: string;
 
-  @Column({ nullable: true })
-  password_hash: string;
-
-  @Column({ default: 0 })
-  days_paid: number;
-
-  @Column({ nullable: true })
-  last_payment: Date;
-
-  @Column({ default: true })
+  @Column({ default: false })
   active: boolean;
 
-  @Column({ nullable: true })
-  activated_at: Date;
+  @Column({ type: 'int', default: 0 })
+  daysPurchased: number;
 
-  @Column({ nullable: true })
-  code: string;
+  @Column({ type: 'timestamptz', nullable: true })
+  expiryDate?: Date;
 
-  @Column({ nullable: true })
-  code_duration_days: number;
-
-  @Column({ nullable: true })
-  code_expires_at: Date;
-
-  @CreateDateColumn()
-  created_at: Date;
+  /**
+   * RELATION: MANY SUBSCRIBERS → ONE MANAGER
+   */
+  @ManyToOne(() => Manager, (manager) => manager.subscribers, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
+  manager: Manager;
 }

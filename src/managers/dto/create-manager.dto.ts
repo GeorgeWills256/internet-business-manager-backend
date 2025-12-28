@@ -1,4 +1,10 @@
+import { IsString, IsOptional } from 'class-validator';
+
 export class CreateManagerDto {
-  name: string;
+  @IsString()
   phone: string;
+
+  @IsOptional()
+  @IsString()
+  username?: string;
 }

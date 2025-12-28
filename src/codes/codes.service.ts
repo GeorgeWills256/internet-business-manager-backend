@@ -1,88 +1,89 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, MoreThan } from 'typeorm';
+import { Code } from '../entities/code.entity';
+import { Manager } from '../entities/manager.entity';
 import { SubscribersService } from '../subscribers/subscribers.service';
-import { ManagersService } from '../managers/managers.service';
-import { AfricasTalkingService } from '../africas-talking/africas-talking.service';
-
-export enum CodeStatus {
-  UNUSED = 'unused',
-  GIVEN = 'given',
-  EXPIRED = 'expired',
-}
 
 @Injectable()
 export class CodesService {
-  private codes: any[] = [];
-  private nextId = 1;
-
   constructor(
+    @InjectRepository(Code)
+    private readonly codesRepo: Repository<Code>,
+
+    @InjectRepository(Manager)
+    private readonly managersRepo: Repository<Manager>,
+
     private readonly subscribersService: SubscribersService,
-    private readonly managersService: ManagersService,
-    private readonly sms: AfricasTalkingService,
   ) {}
 
-  /** Generate a random 12-character code */
-  generateRandomCode(len = 12): string {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let out = '';
-    for (let i = 0; i < len; i++) {
-      out += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return out;
-  }
+  /** GENERATE FREE DAILY CODE */
+  async generateFreeCode(managerId: number) {
+    const manager = await this.managersRepo.findOneBy({ id: managerId });
+    if (!manager) throw new NotFoundException('Manager not found');
 
-  /** Create a new code and send it to the subscriber */
-  async generateCode(
-    managerId: number,
-    subscriberId: number,
-    duration: number
-  ) {
-    const codeStr = this.generateRandomCode();
-    
-    const code = {
-      id: this.nextId++,
-      code: codeStr,
-      managerId,
-      subscriberId,
-      duration,
-      status: CodeStatus.GIVEN,
-    };
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    this.codes.push(code);
-
-    // Find subscriber to send SMS
-    const sub = this.subscribersService.list().find(s => s.id === subscriberId);
-
-    if (sub) {
-      await this.sms.sendSMS(
-        sub.phone,
-        `Your internet code is ${codeStr}. Valid for ${duration} days.`
-      );
-    }
-
-    return code;
-  }
-
-  /** Fetch codes for a specific manager */
-  getCodesByManager(managerId: number) {
-    const codes = this.codes.filter(c => c.managerId === managerId);
-
-    const summary = {
-      total: codes.length,
-      given: codes.filter(c => c.status === CodeStatus.GIVEN).length,
-      unused: codes.filter(c => c.status === CodeStatus.UNUSED).length,
-      expired: codes.filter(c => c.status === CodeStatus.EXPIRED).length,
-      codes,
-    };
-
-    return summary;
-  }
-
-  /** Mark codes as expired */
-  expireCodesByManager(managerId: number) {
-    this.codes.forEach(code => {
-      if (code.managerId === managerId && code.status === CodeStatus.GIVEN) {
-        code.status = CodeStatus.EXPIRED;
-      }
+    const generatedToday = await this.codesRepo.count({
+      where: {
+        manager: { id: managerId },
+        isFree: true,
+        createdAt: MoreThan(today),
+      },
     });
+
+    if (generatedToday >= manager.dailyFreeCodesLimit) {
+      throw new BadRequestException('Daily free code limit reached');
+    }
+
+    const code = this.codesRepo.create({
+      code: this.randomCode(),
+      daysGranted: 1,
+      isFree: true,
+      used: false,
+      manager,
+    });
+
+    return this.codesRepo.save(code);
+  }
+
+  /** REDEEM CODE */
+  async redeemCode(dto: {
+    codeValue: string;
+    subscriberId: number;
+  }) {
+    const code = await this.codesRepo.findOne({
+      where: { code: dto.codeValue, used: false },
+      relations: ['manager'],
+    });
+
+    if (!code) {
+      throw new BadRequestException('Invalid or already used code');
+    }
+
+    await this.subscribersService.activate({
+      subscriberId: dto.subscriberId,
+      days: code.daysGranted,
+      source: 'code',
+    });
+
+    code.used = true;
+    code.usedAt = new Date();
+
+    await this.codesRepo.save(code);
+
+    return {
+      ok: true,
+      daysGranted: code.daysGranted,
+    };
+  }
+
+  private randomCode(): string {
+    return Math.random().toString(36).substring(2, 10).toUpperCase();
   }
 }

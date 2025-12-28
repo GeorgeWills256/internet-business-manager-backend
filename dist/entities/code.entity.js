@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Code = void 0;
 const typeorm_1 = require("typeorm");
+const manager_entity_1 = require("./manager.entity");
 let Code = class Code {
 };
 exports.Code = Code;
@@ -23,29 +24,29 @@ __decorate([
     __metadata("design:type", String)
 ], Code.prototype, "code", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ type: 'int', default: 1 }),
     __metadata("design:type", Number)
-], Code.prototype, "manager_id", void 0);
+], Code.prototype, "daysGranted", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", Number)
-], Code.prototype, "duration_days", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Number)
-], Code.prototype, "assigned_to_subscriber_id", void 0);
+    (0, typeorm_1.Column)({ default: false }),
+    __metadata("design:type", Boolean)
+], Code.prototype, "isFree", void 0);
 __decorate([
     (0, typeorm_1.Column)({ default: false }),
     __metadata("design:type", Boolean)
 ], Code.prototype, "used", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
+    __metadata("design:type", Date)
+], Code.prototype, "usedAt", void 0);
+__decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)
-], Code.prototype, "created_at", void 0);
+], Code.prototype, "createdAt", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Date)
-], Code.prototype, "expires_at", void 0);
+    (0, typeorm_1.ManyToOne)(() => manager_entity_1.Manager, { nullable: false }),
+    __metadata("design:type", manager_entity_1.Manager)
+], Code.prototype, "manager", void 0);
 exports.Code = Code = __decorate([
     (0, typeorm_1.Entity)()
 ], Code);

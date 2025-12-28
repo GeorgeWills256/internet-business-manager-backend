@@ -1,36 +1,65 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Manager } from '../entities/manager.entity';
 import { CreateManagerDto } from './dto/create-manager.dto';
 
 @Injectable()
 export class ManagersService {
-  private managers = [];
-  private nextId = 1;
+  private readonly logger = new Logger(ManagersService.name);
 
-  create(dto: CreateManagerDto) {
-    const manager = { id: this.nextId++, name: dto.name, phone: dto.phone, pendingServiceFee: 0 };
-    this.managers.push(manager);
+  constructor(
+    @InjectRepository(Manager)
+    private readonly managersRepo: Repository<Manager>,
+  ) {}
+
+  async create(dto: CreateManagerDto) {
+    const manager = this.managersRepo.create({
+      phone: dto.phone,
+      username: dto.username,
+    });
+
+    this.logger.log(`Creating manager with phone ${dto.phone}`);
+    return this.managersRepo.save(manager);
+  }
+
+  async findAll() {
+    return this.managersRepo.find();
+  }
+
+  async getById(id: number) {
+    const manager = await this.managersRepo.findOneBy({ id });
+    if (!manager) {
+      this.logger.warn(`Manager not found: ${id}`);
+      throw new NotFoundException('Manager not found');
+    }
     return manager;
   }
 
-  findAll() {
-    return this.managers;
+  async addServiceFee(managerId: number, amount: number) {
+    const manager = await this.getById(managerId);
+
+    manager.pendingWeeklyFee =
+      (manager.pendingWeeklyFee ?? 0) + amount;
+
+    await this.managersRepo.save(manager);
+
+    this.logger.log(
+      `Added service fee ${amount} to manager ${managerId}`,
+    );
+
+    return manager.pendingWeeklyFee;
   }
 
-  addServiceFee(managerId, amount) {
-    const manager = this.managers.find(m => m.id === managerId);
-    if (!manager) throw new Error('Manager not found');
-    manager.pendingServiceFee = (manager.pendingServiceFee || 0) + amount;
-    return manager.pendingServiceFee;
-  }
+  async clearServiceFee(managerId: number) {
+    const manager = await this.getById(managerId);
 
-  clearServiceFee(managerId) {
-    const manager = this.managers.find(m => m.id === managerId);
-    if (!manager) throw new Error('Manager not found');
-    manager.pendingServiceFee = 0;
-    return manager.pendingServiceFee;
-  }
+    manager.pendingWeeklyFee = 0;
+    manager.pendingGraceExpiry = null;
 
-  getById(id) {
-    return this.managers.find(m => m.id === id);
+    await this.managersRepo.save(manager);
+
+    this.logger.log(`Cleared service fee for manager ${managerId}`);
+    return 0;
   }
 }

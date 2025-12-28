@@ -19,28 +19,31 @@ let CodesController = class CodesController {
     constructor(codesService) {
         this.codesService = codesService;
     }
-    async generate(body) {
-        return this.codesService.generateCode(body.managerId, body.subscriberId, body.duration);
+    generateFree(body) {
+        return this.codesService.generateFreeCode(body.managerId);
     }
-    async managerCodes(managerId) {
-        return this.codesService.getCodesByManager(+managerId);
+    redeem(body) {
+        return this.codesService.redeemCode({
+            codeValue: body.code,
+            subscriberId: body.subscriberId,
+        });
     }
 };
 exports.CodesController = CodesController;
 __decorate([
-    (0, common_1.Post)('generate'),
+    (0, common_1.Post)('free'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
-], CodesController.prototype, "generate", null);
+    __metadata("design:returntype", void 0)
+], CodesController.prototype, "generateFree", null);
 __decorate([
-    (0, common_1.Get)('manager/:managerId'),
-    __param(0, (0, common_1.Param)('managerId')),
+    (0, common_1.Post)('redeem'),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", Promise)
-], CodesController.prototype, "managerCodes", null);
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], CodesController.prototype, "redeem", null);
 exports.CodesController = CodesController = __decorate([
     (0, common_1.Controller)('codes'),
     __metadata("design:paramtypes", [codes_service_1.CodesService])

@@ -1,11 +1,17 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+
 import { SchedulerService } from './scheduler.service';
-import { ManagersModule } from '../managers/managers.module';
-import { SubscribersModule } from '../subscribers/subscribers.module';
-import { CodesModule } from '../codes/codes.module';
+import { Manager } from '../entities/manager.entity';
+import { Subscriber } from '../entities/subscriber.entity';
 
 @Module({
-  imports: [ManagersModule, SubscribersModule, CodesModule],
+  imports: [
+    TypeOrmModule.forFeature([
+      Manager,
+      Subscriber,
+    ]),
+  ],
   providers: [SchedulerService],
   exports: [SchedulerService],
 })

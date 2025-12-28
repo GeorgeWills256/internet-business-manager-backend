@@ -8,75 +8,80 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CodesService = exports.CodeStatus = void 0;
+exports.CodesService = void 0;
 const common_1 = require("@nestjs/common");
+const typeorm_1 = require("@nestjs/typeorm");
+const typeorm_2 = require("typeorm");
+const code_entity_1 = require("../entities/code.entity");
+const manager_entity_1 = require("../entities/manager.entity");
 const subscribers_service_1 = require("../subscribers/subscribers.service");
-const managers_service_1 = require("../managers/managers.service");
-const africas_talking_service_1 = require("../africas-talking/africas-talking.service");
-var CodeStatus;
-(function (CodeStatus) {
-    CodeStatus["UNUSED"] = "unused";
-    CodeStatus["GIVEN"] = "given";
-    CodeStatus["EXPIRED"] = "expired";
-})(CodeStatus || (exports.CodeStatus = CodeStatus = {}));
 let CodesService = class CodesService {
-    constructor(subscribersService, managersService, sms) {
+    constructor(codesRepo, managersRepo, subscribersService) {
+        this.codesRepo = codesRepo;
+        this.managersRepo = managersRepo;
         this.subscribersService = subscribersService;
-        this.managersService = managersService;
-        this.sms = sms;
-        this.codes = [];
-        this.nextId = 1;
     }
-    generateRandomCode(len = 12) {
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-        let out = '';
-        for (let i = 0; i < len; i++) {
-            out += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return out;
-    }
-    async generateCode(managerId, subscriberId, duration) {
-        const codeStr = this.generateRandomCode();
-        const code = {
-            id: this.nextId++,
-            code: codeStr,
-            managerId,
-            subscriberId,
-            duration,
-            status: CodeStatus.GIVEN,
-        };
-        this.codes.push(code);
-        const sub = this.subscribersService.list().find(s => s.id === subscriberId);
-        if (sub) {
-            await this.sms.sendSMS(sub.phone, `Your internet code is ${codeStr}. Valid for ${duration} days.`);
-        }
-        return code;
-    }
-    getCodesByManager(managerId) {
-        const codes = this.codes.filter(c => c.managerId === managerId);
-        const summary = {
-            total: codes.length,
-            given: codes.filter(c => c.status === CodeStatus.GIVEN).length,
-            unused: codes.filter(c => c.status === CodeStatus.UNUSED).length,
-            expired: codes.filter(c => c.status === CodeStatus.EXPIRED).length,
-            codes,
-        };
-        return summary;
-    }
-    expireCodesByManager(managerId) {
-        this.codes.forEach(code => {
-            if (code.managerId === managerId && code.status === CodeStatus.GIVEN) {
-                code.status = CodeStatus.EXPIRED;
-            }
+    async generateFreeCode(managerId) {
+        const manager = await this.managersRepo.findOneBy({ id: managerId });
+        if (!manager)
+            throw new common_1.NotFoundException('Manager not found');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const generatedToday = await this.codesRepo.count({
+            where: {
+                manager: { id: managerId },
+                isFree: true,
+                createdAt: (0, typeorm_2.MoreThan)(today),
+            },
         });
+        if (generatedToday >= manager.dailyFreeCodesLimit) {
+            throw new common_1.BadRequestException('Daily free code limit reached');
+        }
+        const code = this.codesRepo.create({
+            code: this.randomCode(),
+            daysGranted: 1,
+            isFree: true,
+            used: false,
+            manager,
+        });
+        return this.codesRepo.save(code);
+    }
+    async redeemCode(dto) {
+        const code = await this.codesRepo.findOne({
+            where: { code: dto.codeValue, used: false },
+            relations: ['manager'],
+        });
+        if (!code) {
+            throw new common_1.BadRequestException('Invalid or already used code');
+        }
+        await this.subscribersService.activate({
+            subscriberId: dto.subscriberId,
+            days: code.daysGranted,
+            source: 'code',
+        });
+        code.used = true;
+        code.usedAt = new Date();
+        await this.codesRepo.save(code);
+        return {
+            ok: true,
+            daysGranted: code.daysGranted,
+        };
+    }
+    randomCode() {
+        return Math.random().toString(36).substring(2, 10).toUpperCase();
     }
 };
 exports.CodesService = CodesService;
 exports.CodesService = CodesService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [subscribers_service_1.SubscribersService,
-        managers_service_1.ManagersService,
-        africas_talking_service_1.AfricasTalkingService])
+    __param(0, (0, typeorm_1.InjectRepository)(code_entity_1.Code)),
+    __param(1, (0, typeorm_1.InjectRepository)(manager_entity_1.Manager)),
+    __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
+        subscribers_service_1.SubscribersService])
 ], CodesService);
 //# sourceMappingURL=codes.service.js.map

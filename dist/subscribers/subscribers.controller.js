@@ -14,48 +14,51 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SubscribersController = void 0;
 const common_1 = require("@nestjs/common");
+const swagger_1 = require("@nestjs/swagger");
 const subscribers_service_1 = require("./subscribers.service");
 let SubscribersController = class SubscribersController {
     constructor(subscribersService) {
         this.subscribersService = subscribersService;
     }
-    register(dto) {
+    async register(dto) {
         return this.subscribersService.register(dto);
     }
-    activate(id, body) {
-        return this.subscribersService.activate({
-            subscriberId: +id,
-            days: body.days,
-            code: body.code,
-        });
+    async activate(dto) {
+        return this.subscribersService.activate(dto);
     }
-    list() {
+    async list() {
         return this.subscribersService.list();
     }
 };
 exports.SubscribersController = SubscribersController;
 __decorate([
     (0, common_1.Post)('register'),
+    (0, swagger_1.ApiOperation)({ summary: 'Register a new subscriber (inactive by default)' }),
+    (0, swagger_1.ApiResponse)({ status: 201, description: 'Subscriber registered' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], SubscribersController.prototype, "register", null);
 __decorate([
-    (0, common_1.Post)(':id/activate'),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Body)()),
+    (0, common_1.Post)('activate'),
+    (0, swagger_1.ApiOperation)({ summary: 'Activate a subscriber' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Subscriber activated' }),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
 ], SubscribersController.prototype, "activate", null);
 __decorate([
     (0, common_1.Get)(),
+    (0, swagger_1.ApiOperation)({ summary: 'List all subscribers' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Subscribers retrieved' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], SubscribersController.prototype, "list", null);
 exports.SubscribersController = SubscribersController = __decorate([
+    (0, swagger_1.ApiTags)('Subscribers'),
     (0, common_1.Controller)('subscribers'),
     __metadata("design:paramtypes", [subscribers_service_1.SubscribersService])
 ], SubscribersController);

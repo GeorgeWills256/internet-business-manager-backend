@@ -1,60 +1,113 @@
 import { Injectable, Logger } from '@nestjs/common';
-import * as schedule from 'node-schedule';
-import { ManagersService } from '../managers/managers.service';
-import { SubscribersService } from '../subscribers/subscribers.service';
-import { CodesService, CodeStatus } from '../codes/codes.service';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, LessThan } from 'typeorm';
+import { Subscriber } from '../entities/subscriber.entity';
+import { Manager } from '../entities/manager.entity';
 
 @Injectable()
 export class SchedulerService {
-  private readonly logger = new Logger('SchedulerService');
+  private readonly logger = new Logger(SchedulerService.name);
 
   constructor(
-    private readonly managersService: ManagersService,
-    private readonly subscribersService: SubscribersService,
-    private readonly codesService: CodesService,
-  ) {
-    this.setupJobs();
+    @InjectRepository(Subscriber)
+    private readonly subscribersRepo: Repository<Subscriber>,
+
+    @InjectRepository(Manager)
+    private readonly managersRepo: Repository<Manager>,
+  ) {}
+
+  /**
+   * Runs every hour
+   * - Deactivates expired subscribers
+   */
+  @Cron(CronExpression.EVERY_HOUR)
+  async deactivateExpiredSubscribers() {
+    const now = new Date();
+
+    const expiredSubscribers = await this.subscribersRepo.find({
+      where: {
+        active: true,
+        expiryDate: LessThan(now),
+      },
+      relations: ['manager'],
+    });
+
+    if (expiredSubscribers.length === 0) return;
+
+    for (const sub of expiredSubscribers) {
+      sub.active = false;
+      await this.subscribersRepo.save(sub);
+
+      this.logger.log(
+        `Subscriber ${sub.phone} deactivated (expired ${sub.expiryDate})`,
+      );
+    }
   }
 
-  setupJobs() {
-    /** 🔸 Job 1 — Saturday 18:00 (Just logs unpaid managers) */
-    schedule.scheduleJob('0 18 * * 6', () => {
-      this.logger.log('Saturday 18:00 — Checking service fee balances');
+  /**
+   * Runs daily at midnight
+   * - Adds daily service cost to managers
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async applyDailyServiceFees() {
+    const managers = await this.managersRepo.find();
 
-      const managers = this.managersService.findAll();
+    for (const manager of managers) {
+      manager.pendingWeeklyFee += manager.dailyInternetFee || 0;
+      await this.managersRepo.save(manager);
+    }
 
-      managers.forEach(m => {
-        if (m.pendingServiceFee > 0) {
+    this.logger.log('Daily service fees applied to managers');
+  }
+
+  /**
+   * Runs weekly (Monday midnight)
+   * - Checks unpaid weekly fees
+   * - Applies grace period logic
+   */
+  @Cron(CronExpression.EVERY_WEEK)
+  async processWeeklyServiceFees() {
+    const now = new Date();
+    const managers = await this.managersRepo.find();
+
+    for (const manager of managers) {
+      if (manager.pendingWeeklyFee > 0) {
+        // Start grace period if not already started
+        if (!manager.pendingGraceExpiry) {
+          const graceExpiry = new Date();
+          graceExpiry.setDate(graceExpiry.getDate() + 3); // 3-day grace
+
+          manager.pendingGraceExpiry = graceExpiry;
+          await this.managersRepo.save(manager);
+
           this.logger.warn(
-            `Manager ${m.name} still owes service fees: ${m.pendingServiceFee}`,
+            `Manager ${manager.id} entered grace period until ${graceExpiry}`,
           );
         }
-      });
-    });
 
-    /** 🔸 Job 2 — Saturday 23:59 (Expire codes + disconnect subscribers) */
-    schedule.scheduleJob('59 23 * * 6', () => {
-      this.logger.log('Saturday 23:59 — Disconnecting unpaid managers');
+        // Grace expired → deactivate manager subscribers
+        if (
+          manager.pendingGraceExpiry &&
+          manager.pendingGraceExpiry < now
+        ) {
+          const subscribers = await this.subscribersRepo.find({
+            where: {
+              manager: { id: manager.id },
+              active: true,
+            },
+          });
 
-      const managers = this.managersService.findAll();
+          for (const sub of subscribers) {
+            sub.active = false;
+            await this.subscribersRepo.save(sub);
+          }
 
-      managers.forEach(manager => {
-        if (manager.pendingServiceFee > 0) {
-          this.logger.warn(
-            `Disconnecting subscribers for manager ${manager.name} due to unpaid fees...`,
+          this.logger.error(
+            `Manager ${manager.id} grace expired. Subscribers deactivated.`,
           );
-
-          // 1️⃣ Expire all codes
-          this.codesService.expireCodesByManager(manager.id);
-
-          // 2️⃣ Disconnect all subscribers under this manager
-          const subs = this.subscribersService
-            .list()
-            .filter(s => s.managerId === manager.id);
-
-          subs.forEach(sub => (sub.activeUntil = null));
         }
-      });
-    });
+      }
+    }
   }
 }

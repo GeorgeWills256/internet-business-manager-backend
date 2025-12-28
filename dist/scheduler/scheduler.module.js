@@ -8,16 +8,21 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SchedulerModule = void 0;
 const common_1 = require("@nestjs/common");
+const typeorm_1 = require("@nestjs/typeorm");
 const scheduler_service_1 = require("./scheduler.service");
-const managers_module_1 = require("../managers/managers.module");
-const subscribers_module_1 = require("../subscribers/subscribers.module");
-const codes_module_1 = require("../codes/codes.module");
+const manager_entity_1 = require("../entities/manager.entity");
+const subscriber_entity_1 = require("../entities/subscriber.entity");
 let SchedulerModule = class SchedulerModule {
 };
 exports.SchedulerModule = SchedulerModule;
 exports.SchedulerModule = SchedulerModule = __decorate([
     (0, common_1.Module)({
-        imports: [managers_module_1.ManagersModule, subscribers_module_1.SubscribersModule, codes_module_1.CodesModule],
+        imports: [
+            typeorm_1.TypeOrmModule.forFeature([
+                manager_entity_1.Manager,
+                subscriber_entity_1.Subscriber,
+            ]),
+        ],
         providers: [scheduler_service_1.SchedulerService],
         exports: [scheduler_service_1.SchedulerService],
     })

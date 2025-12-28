@@ -14,56 +14,64 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ManagersController = void 0;
 const common_1 = require("@nestjs/common");
+const swagger_1 = require("@nestjs/swagger");
 const managers_service_1 = require("./managers.service");
 const create_manager_dto_1 = require("./dto/create-manager.dto");
+const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const roles_guard_1 = require("../auth/guards/roles.guard");
+const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 let ManagersController = class ManagersController {
     constructor(managersService) {
         this.managersService = managersService;
     }
-    create(dto) {
+    async create(dto) {
         return this.managersService.create(dto);
     }
-    list() {
+    async findAll() {
         return this.managersService.findAll();
     }
-    addFee(id, body) {
-        return this.managersService.addServiceFee(+id, body.amount);
-    }
-    clearFee(id) {
-        return this.managersService.clearServiceFee(+id);
+    async getById(id) {
+        return this.managersService.getById(Number(id));
     }
 };
 exports.ManagersController = ManagersController;
 __decorate([
-    (0, common_1.Post)('create'),
+    (0, common_1.Post)(),
+    (0, roles_decorator_1.Roles)('admin'),
+    (0, swagger_1.ApiOperation)({ summary: 'Create a new manager (Admin only)' }),
+    (0, swagger_1.ApiResponse)({ status: 201, description: 'Manager created successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 401, description: 'Unauthorized' }),
+    (0, swagger_1.ApiResponse)({ status: 403, description: 'Forbidden' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_manager_dto_1.CreateManagerDto]),
-    __metadata("design:returntype", void 0)
+    __metadata("design:returntype", Promise)
 ], ManagersController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
+    (0, roles_decorator_1.Roles)('admin', 'manager'),
+    (0, swagger_1.ApiOperation)({ summary: 'List all managers' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Managers retrieved successfully' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
-], ManagersController.prototype, "list", null);
+    __metadata("design:returntype", Promise)
+], ManagersController.prototype, "findAll", null);
 __decorate([
-    (0, common_1.Post)(':id/add-fee'),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
-    __metadata("design:returntype", void 0)
-], ManagersController.prototype, "addFee", null);
-__decorate([
-    (0, common_1.Post)(':id/clear-fee'),
+    (0, common_1.Get)(':id'),
+    (0, roles_decorator_1.Roles)('admin', 'manager'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get manager by ID' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Manager retrieved successfully' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Manager not found' }),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", void 0)
-], ManagersController.prototype, "clearFee", null);
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], ManagersController.prototype, "getById", null);
 exports.ManagersController = ManagersController = __decorate([
+    (0, swagger_1.ApiTags)('Managers'),
+    (0, swagger_1.ApiBearerAuth)(),
     (0, common_1.Controller)('managers'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     __metadata("design:paramtypes", [managers_service_1.ManagersService])
 ], ManagersController);
 //# sourceMappingURL=managers.controller.js.map

@@ -1,21 +1,20 @@
-import { Controller, Post, Get, Param, Body } from '@nestjs/common';
+import { Controller, Post, Body } from '@nestjs/common';
 import { CodesService } from './codes.service';
 
 @Controller('codes')
 export class CodesController {
   constructor(private readonly codesService: CodesService) {}
 
-  @Post('generate')
-  async generate(@Body() body: { managerId: number; subscriberId: number; duration: number }) {
-    return this.codesService.generateCode(
-      body.managerId,
-      body.subscriberId,
-      body.duration
-    );
+  @Post('free')
+  generateFree(@Body() body: { managerId: number }) {
+    return this.codesService.generateFreeCode(body.managerId);
   }
 
-  @Get('manager/:managerId')
-  async managerCodes(@Param('managerId') managerId: string) {
-    return this.codesService.getCodesByManager(+managerId);
+  @Post('redeem')
+  redeem(@Body() body: { code: string; subscriberId: number }) {
+    return this.codesService.redeemCode({
+      codeValue: body.code,
+      subscriberId: body.subscriberId,
+    });
   }
 }

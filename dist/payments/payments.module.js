@@ -8,17 +8,24 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PaymentsModule = void 0;
 const common_1 = require("@nestjs/common");
+const typeorm_1 = require("@nestjs/typeorm");
 const payments_service_1 = require("./payments.service");
 const payments_controller_1 = require("./payments.controller");
-const subscribers_module_1 = require("../subscribers/subscribers.module");
-const managers_module_1 = require("../managers/managers.module");
-const africas_talking_module_1 = require("../africas-talking/africas-talking.module");
+const manager_entity_1 = require("../entities/manager.entity");
+const subscriber_entity_1 = require("../entities/subscriber.entity");
+const service_fee_summary_entity_1 = require("../entities/service-fee-summary.entity");
 let PaymentsModule = class PaymentsModule {
 };
 exports.PaymentsModule = PaymentsModule;
 exports.PaymentsModule = PaymentsModule = __decorate([
     (0, common_1.Module)({
-        imports: [subscribers_module_1.SubscribersModule, managers_module_1.ManagersModule, africas_talking_module_1.AfricasTalkingModule],
+        imports: [
+            typeorm_1.TypeOrmModule.forFeature([
+                manager_entity_1.Manager,
+                subscriber_entity_1.Subscriber,
+                service_fee_summary_entity_1.ServiceFeeSummary,
+            ]),
+        ],
         controllers: [payments_controller_1.PaymentsController],
         providers: [payments_service_1.PaymentsService],
         exports: [payments_service_1.PaymentsService],

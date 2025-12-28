@@ -14,25 +14,50 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PaymentsController = void 0;
 const common_1 = require("@nestjs/common");
+const swagger_1 = require("@nestjs/swagger");
+const throttler_1 = require("@nestjs/throttler");
 const payments_service_1 = require("./payments.service");
+const process_payment_dto_1 = require("./dto/process-payment.dto");
+const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const roles_guard_1 = require("../auth/guards/roles.guard");
+const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 let PaymentsController = class PaymentsController {
     constructor(paymentsService) {
         this.paymentsService = paymentsService;
     }
     async process(dto) {
-        return this.paymentsService.processPayment(dto.subscriberId, dto.managerId, dto.amount, dto.paymentMethod);
+        return this.paymentsService.processPayment(dto);
     }
 };
 exports.PaymentsController = PaymentsController;
 __decorate([
     (0, common_1.Post)('process'),
+    (0, roles_decorator_1.Roles)('manager', 'salesperson'),
+    (0, throttler_1.Throttle)({
+        default: {
+            ttl: 60,
+            limit: 10,
+        },
+    }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Process payment and optionally activate subscriber',
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Payment processed successfully',
+    }),
+    (0, swagger_1.ApiResponse)({ status: 401, description: 'Unauthorized' }),
+    (0, swagger_1.ApiResponse)({ status: 403, description: 'Forbidden' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [process_payment_dto_1.ProcessPaymentDto]),
     __metadata("design:returntype", Promise)
 ], PaymentsController.prototype, "process", null);
 exports.PaymentsController = PaymentsController = __decorate([
+    (0, swagger_1.ApiTags)('Payments'),
+    (0, swagger_1.ApiBearerAuth)(),
     (0, common_1.Controller)('payments'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     __metadata("design:paramtypes", [payments_service_1.PaymentsService])
 ], PaymentsController);
 //# sourceMappingURL=payments.controller.js.map

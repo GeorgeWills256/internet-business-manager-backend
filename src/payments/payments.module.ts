@@ -1,12 +1,22 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+
 import { PaymentsService } from './payments.service';
 import { PaymentsController } from './payments.controller';
-import { SubscribersModule } from '../subscribers/subscribers.module';
-import { ManagersModule } from '../managers/managers.module';
-import { AfricasTalkingModule } from '../africas-talking/africas-talking.module';
+
+// Entities needed
+import { Manager } from '../entities/manager.entity';
+import { Subscriber } from '../entities/subscriber.entity';
+import { ServiceFeeSummary } from '../entities/service-fee-summary.entity';
 
 @Module({
-  imports: [SubscribersModule, ManagersModule, AfricasTalkingModule],
+  imports: [
+    TypeOrmModule.forFeature([
+      Manager,
+      Subscriber,
+      ServiceFeeSummary,
+    ]),
+  ],
   controllers: [PaymentsController],
   providers: [PaymentsService],
   exports: [PaymentsService],

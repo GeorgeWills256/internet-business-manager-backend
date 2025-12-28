@@ -1,30 +1,36 @@
-import { Controller, Post, Body, Get, Param } from '@nestjs/common';
+import { Controller, Post, Get, Body } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SubscribersService } from './subscribers.service';
 
+@ApiTags('Subscribers')
 @Controller('subscribers')
 export class SubscribersController {
   constructor(private readonly subscribersService: SubscribersService) {}
 
   @Post('register')
-  register(@Body() dto: { phone: string; managerId: number }) {
+  @ApiOperation({ summary: 'Register a new subscriber (inactive by default)' })
+  @ApiResponse({ status: 201, description: 'Subscriber registered' })
+  async register(
+    @Body()
+    dto: { phone: string; managerId: number },
+  ) {
     return this.subscribersService.register(dto);
   }
 
-@Post(':id/activate')
-activate(
-  @Param('id') id: string,
-  @Body() body: { days: number; code: string }
-) {
-  return this.subscribersService.activate({
-    subscriberId: +id,
-    days: body.days,
-    code: body.code,
-  });
-}
-
+  @Post('activate')
+  @ApiOperation({ summary: 'Activate a subscriber' })
+  @ApiResponse({ status: 200, description: 'Subscriber activated' })
+  async activate(
+    @Body()
+    dto: { subscriberId: number; days: number; source: 'payment' | 'code' },
+  ) {
+    return this.subscribersService.activate(dto);
+  }
 
   @Get()
-  list() {
+  @ApiOperation({ summary: 'List all subscribers' })
+  @ApiResponse({ status: 200, description: 'Subscribers retrieved' })
+  async list() {
     return this.subscribersService.list();
   }
 }

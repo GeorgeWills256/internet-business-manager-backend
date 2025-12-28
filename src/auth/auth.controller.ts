@@ -1,14 +1,62 @@
-import { Controller, Post, Request, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { LocalAuthGuard } from './guards/local-auth.guard';
+import { LoginDto } from './dto/login.dto';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(private readonly authService: AuthService) {}
 
-  @UseGuards(LocalAuthGuard)
+  /**
+   * LOGIN
+   */
   @Post('login')
-  async login(@Request() req) {
-    return this.authService.login(req.user);
+  @ApiOperation({ summary: 'Login using phone or username and password' })
+  @ApiResponse({
+    status: 200,
+    description: 'JWT access token returned',
+    schema: {
+      example: {
+        access_token: 'eyJhbGciOiJIUzI1NiIs...',
+        user: {
+          id: 1,
+          role: 'manager',
+          phone: '2567xxxxxxx',
+          username: 'john_doe',
+        },
+      },
+    },
+  })
+  async login(@Body() dto: LoginDto) {
+    return this.authService.login(dto.identifier, dto.password);
+  }
+
+  /**
+   * REGISTER MANAGER
+   * (will be admin-protected in Phase B2)
+   */
+  @Post('register-manager')
+  @ApiOperation({ summary: 'Register a new manager (admin-only later)' })
+  @ApiResponse({
+    status: 201,
+    description: 'Manager registered successfully',
+    schema: {
+      example: {
+        ok: true,
+        message: 'Manager registered successfully',
+        managerId: 5,
+      },
+    },
+  })
+  async registerManager(
+    @Body()
+    dto: {
+      phone: string;
+      username: string;
+      password: string;
+    },
+  ) {
+    return this.authService.registerManager(dto);
   }
 }

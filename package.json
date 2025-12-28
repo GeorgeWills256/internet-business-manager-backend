@@ -5,20 +5,25 @@
   "main": "dist/main.js",
   "scripts": {
     "start": "nest start",
-    "start:dev": "nest start --watch",
+    "start:dev": "set NODE_OPTIONS=--dns-result-order=ipv4first && nest start --watch",
     "build": "node node_modules/@nestjs/cli/bin/nest.js build",
     "start:prod": "node dist/main.js"
   },
   "dependencies": {
     "@nestjs/common": "^9.4.3",
+    "@nestjs/config": "^2.3.0",
     "@nestjs/core": "^9.4.3",
     "@nestjs/jwt": "^9.0.0",
-    "@nestjs/passport": "^9.0.0",
+    "@nestjs/passport": "^9.0.3",
     "@nestjs/platform-express": "^9.4.3",
     "@nestjs/schedule": "^2.0.0",
+    "@nestjs/swagger": "^6.3.0",
+    "@nestjs/throttler": "^6.5.0",
+    "@nestjs/typeorm": "^9.0.1",
     "africastalking": "^0.7.6",
+    "bcryptjs": "^3.0.3",
     "class-transformer": "^0.5.1",
-    "class-validator": "^0.14.0",
+    "class-validator": "^0.14.3",
     "dotenv": "^16.0.0",
     "node-schedule": "^2.1.0",
     "passport": "^0.6.0",
@@ -29,10 +34,12 @@
     "rimraf": "^3.0.2",
     "rxjs": "^7.8.2",
     "sqlite3": "^5.1.2",
-    "typeorm": "^0.3.12"
+    "swagger-ui-express": "^4.6.3",
+    "typeorm": "^0.3.17"
   },
   "devDependencies": {
     "@nestjs/cli": "^9.0.0",
+    "@types/bcryptjs": "^2.4.6",
     "@types/passport": "^1.0.17",
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.38",
