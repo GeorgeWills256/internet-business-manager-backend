@@ -72,17 +72,17 @@ let AuthService = class AuthService {
     }
     async login(identifier, password) {
         const user = await this.validateUser(identifier, password);
-        let role = 'salesperson';
+        let role = 'SALES';
         if (user.isManager)
-            role = 'manager';
+            role = 'MANAGER';
         if (user.isAdmin)
-            role = 'admin';
+            role = 'ADMIN';
         const payload = {
             sub: user.id,
             role,
         };
         return {
-            access_token: this.jwtService.sign(payload),
+            accessToken: this.jwtService.sign(payload),
             user: {
                 id: user.id,
                 role,

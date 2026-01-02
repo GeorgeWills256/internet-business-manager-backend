@@ -12,9 +12,9 @@ async function bootstrap() {
         transform: true,
     }));
     app.enableCors({
-        origin: '*',
-        methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+        origin: true,
         credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     });
     const swaggerConfig = new swagger_1.DocumentBuilder()
         .setTitle('Internet Business Manager API')
@@ -24,7 +24,6 @@ async function bootstrap() {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
-        in: 'header',
     }, 'access-token')
         .build();
     const document = swagger_1.SwaggerModule.createDocument(app, swaggerConfig);

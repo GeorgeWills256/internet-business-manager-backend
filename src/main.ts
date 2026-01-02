@@ -8,9 +8,6 @@ async function bootstrap() {
 
   /**
    * ✅ GLOBAL VALIDATION
-   * - strips unknown fields
-   * - blocks invalid payloads
-   * - auto-transforms DTO types
    */
   app.useGlobalPipes(
     new ValidationPipe({
@@ -21,17 +18,19 @@ async function bootstrap() {
   );
 
   /**
-   * ✅ CORS
-   * (safe default for frontend integration)
+   * ✅ CORS (Swagger + Frontend safe)
+   *
+   * - Allows localhost, 127.0.0.1, and deployed frontend
+   * - Fixes "Failed to fetch" in Swagger
    */
   app.enableCors({
-    origin: '*',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    origin: true, // 👈 reflects request origin safely
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   });
 
   /**
-   * ✅ SWAGGER (AUTH-AWARE)
+   * ✅ SWAGGER (JWT AUTH ENABLED)
    */
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Internet Business Manager API')
@@ -44,7 +43,6 @@ async function bootstrap() {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
-        in: 'header',
       },
       'access-token',
     )

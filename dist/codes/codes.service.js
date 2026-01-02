@@ -19,28 +19,29 @@ const typeorm_2 = require("typeorm");
 const code_entity_1 = require("../entities/code.entity");
 const manager_entity_1 = require("../entities/manager.entity");
 const subscribers_service_1 = require("../subscribers/subscribers.service");
+const abuse_service_1 = require("../abuse/abuse.service");
 let CodesService = class CodesService {
-    constructor(codesRepo, managersRepo, subscribersService) {
+    constructor(codesRepo, managersRepo, subscribersService, abuseService) {
         this.codesRepo = codesRepo;
         this.managersRepo = managersRepo;
         this.subscribersService = subscribersService;
+        this.abuseService = abuseService;
     }
     async generateFreeCode(managerId) {
-        const manager = await this.managersRepo.findOneBy({ id: managerId });
-        if (!manager)
-            throw new common_1.NotFoundException('Manager not found');
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const generatedToday = await this.codesRepo.count({
-            where: {
-                manager: { id: managerId },
-                isFree: true,
-                createdAt: (0, typeorm_2.MoreThan)(today),
-            },
+        const manager = await this.managersRepo.findOne({
+            where: { id: managerId },
         });
-        if (generatedToday >= manager.dailyFreeCodesLimit) {
-            throw new common_1.BadRequestException('Daily free code limit reached');
+        if (!manager) {
+            throw new common_1.NotFoundException('Manager not found');
         }
+        this.abuseService.assertAllowed(manager, abuse_service_1.AbuseAction.ISSUE_FREE_CODE);
+        const today = new Date().toISOString().slice(0, 10);
+        if (manager.freeCodesIssuedDate !== today) {
+            manager.freeCodesIssuedDate = today;
+            manager.freeCodesIssuedToday = 0;
+        }
+        manager.freeCodesIssuedToday += 1;
+        await this.managersRepo.save(manager);
         const code = this.codesRepo.create({
             code: this.randomCode(),
             daysGranted: 1,
@@ -58,6 +59,7 @@ let CodesService = class CodesService {
         if (!code) {
             throw new common_1.BadRequestException('Invalid or already used code');
         }
+        this.abuseService.assertAllowed(code.manager, abuse_service_1.AbuseAction.ACTIVATE_SUBSCRIBER);
         await this.subscribersService.activate({
             subscriberId: dto.subscriberId,
             days: code.daysGranted,
@@ -72,7 +74,10 @@ let CodesService = class CodesService {
         };
     }
     randomCode() {
-        return Math.random().toString(36).substring(2, 10).toUpperCase();
+        return Math.random()
+            .toString(36)
+            .substring(2, 10)
+            .toUpperCase();
     }
 };
 exports.CodesService = CodesService;
@@ -82,6 +87,7 @@ exports.CodesService = CodesService = __decorate([
     __param(1, (0, typeorm_1.InjectRepository)(manager_entity_1.Manager)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
-        subscribers_service_1.SubscribersService])
+        subscribers_service_1.SubscribersService,
+        abuse_service_1.AbuseService])
 ], CodesService);
 //# sourceMappingURL=codes.service.js.map

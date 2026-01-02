@@ -11,12 +11,12 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const config_1 = require("@nestjs/config");
 const throttler_1 = require("@nestjs/throttler");
-const core_1 = require("@nestjs/core");
-const audit_logs_module_1 = require("./audit-logs/audit-logs.module");
-const health_controller_1 = require("./health/health.controller");
+const schedule_1 = require("@nestjs/schedule");
 const auth_module_1 = require("./auth/auth.module");
-const jwt_auth_guard_1 = require("./auth/guards/jwt-auth.guard");
-const roles_guard_1 = require("./auth/guards/roles.guard");
+const audit_logs_module_1 = require("./audit-logs/audit-logs.module");
+const abuse_module_1 = require("./abuse/abuse.module");
+const admin_module_1 = require("./admin/admin.module");
+const health_controller_1 = require("./health/health.controller");
 const manager_entity_1 = require("./entities/manager.entity");
 const subscriber_entity_1 = require("./entities/subscriber.entity");
 const code_entity_1 = require("./entities/code.entity");
@@ -39,6 +39,7 @@ exports.AppModule = AppModule = __decorate([
                     limit: 100,
                 },
             ]),
+            schedule_1.ScheduleModule.forRoot(),
             typeorm_1.TypeOrmModule.forRootAsync({
                 imports: [config_1.ConfigModule],
                 inject: [config_1.ConfigService],
@@ -53,25 +54,15 @@ exports.AppModule = AppModule = __decorate([
                         service_fee_summary_entity_1.ServiceFeeSummary,
                         audit_log_entity_1.AuditLog,
                     ],
-                    synchronize: false,
+                    synchronize: true,
                     logging: false,
-                    migrations: ['dist/migrations/*.js'],
-                    migrationsRun: false,
                     extra: { max: 10 },
                 }),
             }),
             auth_module_1.AuthModule,
             audit_logs_module_1.AuditLogsModule,
-        ],
-        providers: [
-            {
-                provide: core_1.APP_GUARD,
-                useClass: jwt_auth_guard_1.JwtAuthGuard,
-            },
-            {
-                provide: core_1.APP_GUARD,
-                useClass: roles_guard_1.RolesGuard,
-            },
+            abuse_module_1.AbuseModule,
+            admin_module_1.AdminModule,
         ],
     })
 ], AppModule);

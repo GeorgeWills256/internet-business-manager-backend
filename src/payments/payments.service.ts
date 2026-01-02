@@ -6,10 +6,15 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
+
 import { Manager } from '../entities/manager.entity';
 import { Subscriber } from '../entities/subscriber.entity';
 import { ServiceFeeSummary } from '../entities/service-fee-summary.entity';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import {
+  AbuseService,
+  AbuseAction,
+} from '../abuse/abuse.service';
 
 export type PaymentMethod = 'mobile' | 'cash';
 
@@ -29,7 +34,9 @@ export class PaymentsService {
     @InjectRepository(ServiceFeeSummary)
     private readonly feeRepo: Repository<ServiceFeeSummary>,
 
-    // ✅ AUDIT LOGGING (additive, safe)
+    private readonly abuseService: AbuseService,
+
+    // ✅ AUDIT LOGGING (non-blocking)
     private readonly auditLogs: AuditLogsService,
   ) {}
 
@@ -58,16 +65,31 @@ export class PaymentsService {
     await queryRunner.startTransaction();
 
     try {
-      // Validate manager
+      /**
+       * VALIDATE MANAGER
+       */
       const manager = await queryRunner.manager.findOne(Manager, {
         where: { id: dto.managerId },
       });
       if (!manager) throw new NotFoundException('Manager not found');
 
-      // Days must be >= 1
+      /**
+       * 🔐 ABUSE GATE — PAYMENT ACTION
+       * (Allows recovery but blocks suspended accounts)
+       */
+      this.abuseService.assertAllowed(
+        manager,
+        AbuseAction.RECEIVE_PAYMENT,
+      );
+
+      /**
+       * NORMALIZE DAYS
+       */
       const days = Math.max(1, dto.days || 1);
 
-      // Calculate total cost
+      /**
+       * CALCULATE COSTS
+       */
       const amount = manager.dailyInternetFee * days;
 
       // Admin takes 10%
@@ -76,7 +98,9 @@ export class PaymentsService {
       // Manager receives 90%
       const managerShare = amount - adminFee;
 
-      // Record admin fee
+      /**
+       * RECORD ADMIN FEE
+       */
       await queryRunner.manager.save(ServiceFeeSummary, {
         managerId: manager.id,
         amount: adminFee,
@@ -132,10 +156,12 @@ export class PaymentsService {
           .execute();
       }
 
-      // ✅ COMMIT TRANSACTION FIRST
+      // ✅ COMMIT TRANSACTION
       await queryRunner.commitTransaction();
 
-      // ✅ AUDIT LOG (AFTER SUCCESSFUL COMMIT)
+      /**
+       * AUDIT LOG (POST-COMMIT, NEVER BLOCKING)
+       */
       try {
         await this.auditLogs.log(
           'PAYMENT_PROCESSED',
@@ -148,7 +174,6 @@ export class PaymentsService {
           },
         );
       } catch (auditError) {
-        // Audit failure must NEVER break payment
         this.logger.warn(
           `Audit log failed for manager ${manager.id}: ${auditError.message}`,
         );

@@ -14,7 +14,9 @@ export class Manager {
   id: number;
 
   /**
+   * =========================
    * AUTH & IDENTITY
+   * =========================
    */
 
   @Index({ unique: true })
@@ -29,23 +31,60 @@ export class Manager {
   passwordHash?: string;
 
   /**
+   * =========================
    * ROLES / PERMISSIONS
+   * =========================
    */
 
-  // System-level admin (you / superuser)
+  /**
+   * System-level admin (YOU / platform owner)
+   * - Can view metrics
+   * - Can suspend managers
+   * - Can audit system
+   */
   @Column({ default: false })
   isAdmin: boolean;
 
-  // Manager role (default true for this entity)
+  /**
+   * Business manager (router owner)
+   */
   @Column({ default: true })
   isManager: boolean;
 
-  // Manager can also sell directly
+  /**
+   * Manager can also act as salesperson
+   */
   @Column({ default: true })
   canActAsSalesperson: boolean;
 
   /**
+   * =========================
+   * ABUSE / ENFORCEMENT FLAGS
+   * =========================
+   */
+
+  /**
+   * Hard suspension (admin-enforced)
+   */
+  @Column({ default: false })
+  isSuspended: boolean;
+
+  /**
+   * Optional suspension expiry
+   */
+  @Column({ type: 'timestamptz', nullable: true })
+  suspendedUntil?: Date;
+
+  /**
+   * Reason shown to manager
+   */
+  @Column({ type: 'text', nullable: true })
+  suspensionReason?: string;
+
+  /**
+   * =========================
    * BUSINESS CONFIG
+   * =========================
    */
 
   @Column({ type: 'int', default: 5 })
@@ -55,20 +94,31 @@ export class Manager {
   dailyInternetFee: number;
 
   /**
+   * =========================
    * FINANCIAL TRACKING
+   * =========================
    */
 
   @Column({ type: 'integer', default: 0 })
   balance: number;
 
+  /**
+   * Weekly platform fee owed to admin
+   */
   @Column({ type: 'integer', default: 0 })
   pendingWeeklyFee: number;
 
+  /**
+   * Grace period before blocking services
+   */
   @Column({ type: 'timestamptz', nullable: true })
   pendingGraceExpiry?: Date;
 
   /**
-   * FREE CODE TRACKING (RESETS DAILY)
+   * =========================
+   * FREE CODE TRACKING
+   * (RESETS DAILY)
+   * =========================
    */
 
   @Column({ type: 'integer', default: 0 })
@@ -78,7 +128,9 @@ export class Manager {
   freeCodesIssuedDate?: string;
 
   /**
+   * =========================
    * RELATIONS
+   * =========================
    */
 
   @OneToMany(() => Subscriber, (s) => s.manager)

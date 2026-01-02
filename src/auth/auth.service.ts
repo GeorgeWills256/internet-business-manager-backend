@@ -5,7 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { Manager } from '../entities/manager.entity';
 
-export type UserRole = 'admin' | 'manager' | 'salesperson';
+export type UserRole = 'ADMIN' | 'MANAGER' | 'SALES';
 
 @Injectable()
 export class AuthService {
@@ -18,7 +18,10 @@ export class AuthService {
   /**
    * Validate user by phone OR username + password
    */
-  async validateUser(identifier: string, password: string): Promise<Manager> {
+  async validateUser(
+    identifier: string,
+    password: string,
+  ): Promise<Manager> {
     const manager = await this.managersRepo.findOne({
       where: [{ phone: identifier }, { username: identifier }],
     });
@@ -41,18 +44,18 @@ export class AuthService {
   async login(identifier: string, password: string) {
     const user = await this.validateUser(identifier, password);
 
-    // Determine role cleanly
-    let role: UserRole = 'salesperson';
-    if (user.isManager) role = 'manager';
-    if (user.isAdmin) role = 'admin';
+    // ✅ Determine role (ORDER MATTERS)
+    let role: UserRole = 'SALES';
+    if (user.isManager) role = 'MANAGER';
+    if (user.isAdmin) role = 'ADMIN';
 
     const payload = {
       sub: user.id,
-      role,
+      role, // 🔑 REQUIRED for AdminGuard
     };
 
     return {
-      access_token: this.jwtService.sign(payload),
+      accessToken: this.jwtService.sign(payload),
       user: {
         id: user.id,
         role,

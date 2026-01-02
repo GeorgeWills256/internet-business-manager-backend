@@ -21,12 +21,14 @@ const manager_entity_1 = require("../entities/manager.entity");
 const subscriber_entity_1 = require("../entities/subscriber.entity");
 const service_fee_summary_entity_1 = require("../entities/service-fee-summary.entity");
 const audit_logs_service_1 = require("../audit-logs/audit-logs.service");
+const abuse_service_1 = require("../abuse/abuse.service");
 let PaymentsService = PaymentsService_1 = class PaymentsService {
-    constructor(dataSource, managersRepo, subscribersRepo, feeRepo, auditLogs) {
+    constructor(dataSource, managersRepo, subscribersRepo, feeRepo, abuseService, auditLogs) {
         this.dataSource = dataSource;
         this.managersRepo = managersRepo;
         this.subscribersRepo = subscribersRepo;
         this.feeRepo = feeRepo;
+        this.abuseService = abuseService;
         this.auditLogs = auditLogs;
         this.logger = new common_1.Logger(PaymentsService_1.name);
     }
@@ -46,6 +48,7 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
             });
             if (!manager)
                 throw new common_1.NotFoundException('Manager not found');
+            this.abuseService.assertAllowed(manager, abuse_service_1.AbuseAction.RECEIVE_PAYMENT);
             const days = Math.max(1, dto.days || 1);
             const amount = manager.dailyInternetFee * days;
             const adminFee = Math.round(amount * 0.1);
@@ -126,6 +129,7 @@ exports.PaymentsService = PaymentsService = PaymentsService_1 = __decorate([
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
+        abuse_service_1.AbuseService,
         audit_logs_service_1.AuditLogsService])
 ], PaymentsService);
 //# sourceMappingURL=payments.service.js.map

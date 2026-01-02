@@ -13,7 +13,7 @@ const passport_1 = require("@nestjs/passport");
 const typeorm_1 = require("@nestjs/typeorm");
 const auth_service_1 = require("./auth.service");
 const auth_controller_1 = require("./auth.controller");
-const jwt_strategy_1 = require("./strategies/jwt.strategy");
+const jwt_strategy_1 = require("./jwt.strategy");
 const manager_entity_1 = require("../entities/manager.entity");
 let AuthModule = class AuthModule {
 };
@@ -21,15 +21,22 @@ exports.AuthModule = AuthModule;
 exports.AuthModule = AuthModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            passport_1.PassportModule.register({ defaultStrategy: 'jwt' }),
+            passport_1.PassportModule.register({
+                defaultStrategy: 'jwt',
+            }),
             jwt_1.JwtModule.register({
-                secret: process.env.JWT_SECRET || 'CHANGE_ME_IN_PRODUCTION',
-                signOptions: { expiresIn: '7d' },
+                secret: process.env.JWT_SECRET || 'SUPER_SECRET_KEY_CHANGE_IN_PROD',
+                signOptions: {
+                    expiresIn: '7d',
+                },
             }),
             typeorm_1.TypeOrmModule.forFeature([manager_entity_1.Manager]),
         ],
         controllers: [auth_controller_1.AuthController],
-        providers: [auth_service_1.AuthService, jwt_strategy_1.JwtStrategy],
+        providers: [
+            auth_service_1.AuthService,
+            jwt_strategy_1.JwtStrategy,
+        ],
         exports: [
             passport_1.PassportModule,
             jwt_1.JwtModule,

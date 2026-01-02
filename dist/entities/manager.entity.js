@@ -47,6 +47,18 @@ __decorate([
     __metadata("design:type", Boolean)
 ], Manager.prototype, "canActAsSalesperson", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ default: false }),
+    __metadata("design:type", Boolean)
+], Manager.prototype, "isSuspended", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'timestamptz', nullable: true }),
+    __metadata("design:type", Date)
+], Manager.prototype, "suspendedUntil", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", String)
+], Manager.prototype, "suspensionReason", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: 'int', default: 5 }),
     __metadata("design:type", Number)
 ], Manager.prototype, "dailyFreeCodesLimit", void 0);

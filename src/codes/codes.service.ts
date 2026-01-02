@@ -4,10 +4,16 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan } from 'typeorm';
+import { Repository } from 'typeorm';
+
 import { Code } from '../entities/code.entity';
 import { Manager } from '../entities/manager.entity';
 import { SubscribersService } from '../subscribers/subscribers.service';
+
+import {
+  AbuseService,
+  AbuseAction,
+} from '../abuse/abuse.service';
 
 @Injectable()
 export class CodesService {
@@ -19,28 +25,48 @@ export class CodesService {
     private readonly managersRepo: Repository<Manager>,
 
     private readonly subscribersService: SubscribersService,
+    private readonly abuseService: AbuseService,
   ) {}
 
-  /** GENERATE FREE DAILY CODE */
+  /**
+   * 🎟️ GENERATE FREE DAILY CODE
+   */
   async generateFreeCode(managerId: number) {
-    const manager = await this.managersRepo.findOneBy({ id: managerId });
-    if (!manager) throw new NotFoundException('Manager not found');
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const generatedToday = await this.codesRepo.count({
-      where: {
-        manager: { id: managerId },
-        isFree: true,
-        createdAt: MoreThan(today),
-      },
+    const manager = await this.managersRepo.findOne({
+      where: { id: managerId },
     });
 
-    if (generatedToday >= manager.dailyFreeCodesLimit) {
-      throw new BadRequestException('Daily free code limit reached');
+    if (!manager) {
+      throw new NotFoundException('Manager not found');
     }
 
+    /**
+     * 🔐 Abuse protection (limits + grace + suspension)
+     */
+    this.abuseService.assertAllowed(
+      manager,
+      AbuseAction.ISSUE_FREE_CODE,
+    );
+
+    /**
+     * 🔁 Reset daily counters if date changed
+     */
+    const today = new Date().toISOString().slice(0, 10);
+
+    if (manager.freeCodesIssuedDate !== today) {
+      manager.freeCodesIssuedDate = today;
+      manager.freeCodesIssuedToday = 0;
+    }
+
+    /**
+     * ➕ Increment counter
+     */
+    manager.freeCodesIssuedToday += 1;
+    await this.managersRepo.save(manager);
+
+    /**
+     * 🎫 Create code
+     */
     const code = this.codesRepo.create({
       code: this.randomCode(),
       daysGranted: 1,
@@ -52,7 +78,9 @@ export class CodesService {
     return this.codesRepo.save(code);
   }
 
-  /** REDEEM CODE */
+  /**
+   * 🔓 REDEEM CODE
+   */
   async redeemCode(dto: {
     codeValue: string;
     subscriberId: number;
@@ -63,8 +91,18 @@ export class CodesService {
     });
 
     if (!code) {
-      throw new BadRequestException('Invalid or already used code');
+      throw new BadRequestException(
+        'Invalid or already used code',
+      );
     }
+
+    /**
+     * 🔐 Abuse protection on activation
+     */
+    this.abuseService.assertAllowed(
+      code.manager,
+      AbuseAction.ACTIVATE_SUBSCRIBER,
+    );
 
     await this.subscribersService.activate({
       subscriberId: dto.subscriberId,
@@ -83,7 +121,13 @@ export class CodesService {
     };
   }
 
+  /**
+   * 🔑 Random code generator
+   */
   private randomCode(): string {
-    return Math.random().toString(36).substring(2, 10).toUpperCase();
+    return Math.random()
+      .toString(36)
+      .substring(2, 10)
+      .toUpperCase();
   }
 }
