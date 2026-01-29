@@ -1,1 +1,0 @@
-{"version":3,"file":"system-fees.config.js","sourceRoot":"","sources":["../../src/payments/system-fees.config.ts"],"names":[],"mappings":";;;AAAa,QAAA,mBAAmB,GAAG;IACjC,MAAM,EAAE;QACN,UAAU,EAAE,EAAE;QACd,sBAAsB,EAAE,CAAC;KAC1B;IACD,MAAM,EAAE;QACN,UAAU,EAAE,CAAC;QACb,sBAAsB,EAAE,KAAK;KAC9B;IACD,MAAM,EAAE;QACN,UAAU,EAAE,CAAC;QACb,sBAAsB,EAAE,MAAM;KAC/B;CACO,CAAC"}
