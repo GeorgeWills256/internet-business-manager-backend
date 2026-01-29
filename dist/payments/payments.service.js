@@ -22,22 +22,21 @@ const subscriber_entity_1 = require("../entities/subscriber.entity");
 const service_fee_summary_entity_1 = require("../entities/service-fee-summary.entity");
 const audit_logs_service_1 = require("../audit-logs/audit-logs.service");
 const abuse_service_1 = require("../abuse/abuse.service");
+const portal_service_1 = require("../portal/portal.service");
 let PaymentsService = PaymentsService_1 = class PaymentsService {
-    constructor(dataSource, managersRepo, subscribersRepo, feeRepo, abuseService, auditLogs) {
+    constructor(dataSource, managersRepo, subscribersRepo, feeRepo, abuseService, portalService, auditLogs) {
         this.dataSource = dataSource;
         this.managersRepo = managersRepo;
         this.subscribersRepo = subscribersRepo;
         this.feeRepo = feeRepo;
         this.abuseService = abuseService;
+        this.portalService = portalService;
         this.auditLogs = auditLogs;
         this.logger = new common_1.Logger(PaymentsService_1.name);
     }
     async processPayment(dto) {
         if (!['mobile', 'cash'].includes(dto.method)) {
-            throw new common_1.BadRequestException('Invalid payment method');
-        }
-        if (dto.method === 'mobile' && !dto.mobileReference) {
-            throw new common_1.BadRequestException('Mobile reference required');
+            throw new common_1.BadRequestException('Invalid method');
         }
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
@@ -47,72 +46,41 @@ let PaymentsService = PaymentsService_1 = class PaymentsService {
                 where: { id: dto.managerId },
             });
             if (!manager)
-                throw new common_1.NotFoundException('Manager not found');
+                throw new common_1.NotFoundException();
             this.abuseService.assertAllowed(manager, abuse_service_1.AbuseAction.RECEIVE_PAYMENT);
-            const days = Math.max(1, dto.days || 1);
-            const amount = manager.dailyInternetFee * days;
-            const adminFee = Math.round(amount * 0.1);
-            const managerShare = amount - adminFee;
+            const adminFee = Math.round(dto.amount * 0.1);
+            const managerShare = dto.amount - adminFee;
             await queryRunner.manager.save(service_fee_summary_entity_1.ServiceFeeSummary, {
                 managerId: manager.id,
                 amount: adminFee,
                 createdAt: new Date(),
             });
-            manager.balance = (manager.balance ?? 0) + managerShare;
+            manager.balance += managerShare;
             await queryRunner.manager.save(manager);
             if (dto.subscriberId) {
-                const sub = await queryRunner.manager.findOne(subscriber_entity_1.Subscriber, {
-                    where: { id: dto.subscriberId },
-                });
+                const sub = await queryRunner.manager.findOne(subscriber_entity_1.Subscriber, { where: { id: dto.subscriberId } });
                 if (!sub)
-                    throw new common_1.BadRequestException('Subscriber not found');
-                const now = new Date();
-                sub.daysPurchased = days;
-                sub.expiryDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+                    throw new common_1.BadRequestException();
                 sub.active = true;
-                sub.manager = manager;
+                sub.expiryDate = new Date(Date.now() +
+                    dto.days * 24 * 60 * 60 * 1000);
                 await queryRunner.manager.save(sub);
             }
-            if (manager.pendingWeeklyFee &&
-                manager.pendingWeeklyFee > 0 &&
-                manager.balance >= manager.pendingWeeklyFee) {
-                manager.balance -= manager.pendingWeeklyFee;
-                manager.pendingWeeklyFee = 0;
-                manager.pendingGraceExpiry = null;
-                await queryRunner.manager.save(manager);
-                await queryRunner.manager
-                    .createQueryBuilder()
-                    .update(subscriber_entity_1.Subscriber)
-                    .set({ active: true })
-                    .where('managerId = :id', { id: manager.id })
-                    .execute();
-            }
             await queryRunner.commitTransaction();
-            try {
-                await this.auditLogs.log('PAYMENT_PROCESSED', manager.id, {
-                    amount,
-                    days,
-                    method: dto.method,
-                    subscriberId: dto.subscriberId ?? null,
+            if (dto.portalSessionId) {
+                await this.portalService.grantAccess({
+                    sessionId: dto.portalSessionId,
+                    days: dto.days,
+                    amountPaid: dto.amount,
+                    paymentReference: dto.mobileReference,
                 });
             }
-            catch (auditError) {
-                this.logger.warn(`Audit log failed for manager ${manager.id}: ${auditError.message}`);
-            }
-            this.logger.log(`Payment processed: manager=${manager.id}, amount=${amount}, method=${dto.method}`);
-            return {
-                ok: true,
-                days,
-                amount,
-                adminFee,
-                managerShare,
-                paymentMethod: dto.method,
-            };
+            await this.auditLogs.log('PAYMENT_PROCESSED', manager.id, dto);
+            return { ok: true };
         }
-        catch (error) {
+        catch (e) {
             await queryRunner.rollbackTransaction();
-            this.logger.error(`Payment failed for manager ${dto.managerId}: ${error.message}`);
-            throw error;
+            throw e;
         }
         finally {
             await queryRunner.release();
@@ -130,6 +98,7 @@ exports.PaymentsService = PaymentsService = PaymentsService_1 = __decorate([
         typeorm_2.Repository,
         typeorm_2.Repository,
         abuse_service_1.AbuseService,
+        portal_service_1.PortalService,
         audit_logs_service_1.AuditLogsService])
 ], PaymentsService);
 //# sourceMappingURL=payments.service.js.map

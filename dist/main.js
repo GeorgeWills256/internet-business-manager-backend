@@ -24,7 +24,9 @@ async function bootstrap() {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
-    }, 'access-token')
+        name: 'Authorization',
+        in: 'header',
+    }, 'JWT-auth')
         .build();
     const document = swagger_1.SwaggerModule.createDocument(app, swaggerConfig);
     swagger_1.SwaggerModule.setup('api', app, document);

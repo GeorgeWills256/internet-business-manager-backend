@@ -10,11 +10,13 @@ import { Repository, DataSource } from 'typeorm';
 import { Manager } from '../entities/manager.entity';
 import { Subscriber } from '../entities/subscriber.entity';
 import { ServiceFeeSummary } from '../entities/service-fee-summary.entity';
+
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import {
   AbuseService,
   AbuseAction,
 } from '../abuse/abuse.service';
+import { PortalService } from '../portal/portal.service';
 
 export type PaymentMethod = 'mobile' | 'cash';
 
@@ -35,168 +37,89 @@ export class PaymentsService {
     private readonly feeRepo: Repository<ServiceFeeSummary>,
 
     private readonly abuseService: AbuseService,
-
-    // ✅ AUDIT LOGGING (non-blocking)
+    private readonly portalService: PortalService,
     private readonly auditLogs: AuditLogsService,
   ) {}
 
-  /**
-   * PROCESS PAYMENT (MOBILE MONEY OR CASH)
-   */
   async processPayment(dto: {
     managerId: number;
     subscriberId?: number;
+    portalSessionId?: string;
     days: number;
+    amount: number;
     method: PaymentMethod;
     mobileReference?: string;
   }) {
-    // Validate payment method
     if (!['mobile', 'cash'].includes(dto.method)) {
-      throw new BadRequestException('Invalid payment method');
+      throw new BadRequestException('Invalid method');
     }
 
-    // Mobile payments must have reference
-    if (dto.method === 'mobile' && !dto.mobileReference) {
-      throw new BadRequestException('Mobile reference required');
-    }
-
-    const queryRunner = this.dataSource.createQueryRunner();
+    const queryRunner =
+      this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      /**
-       * VALIDATE MANAGER
-       */
-      const manager = await queryRunner.manager.findOne(Manager, {
-        where: { id: dto.managerId },
-      });
-      if (!manager) throw new NotFoundException('Manager not found');
+      const manager =
+        await queryRunner.manager.findOne(Manager, {
+          where: { id: dto.managerId },
+        });
+      if (!manager) throw new NotFoundException();
 
-      /**
-       * 🔐 ABUSE GATE — PAYMENT ACTION
-       * (Allows recovery but blocks suspended accounts)
-       */
       this.abuseService.assertAllowed(
         manager,
         AbuseAction.RECEIVE_PAYMENT,
       );
 
-      /**
-       * NORMALIZE DAYS
-       */
-      const days = Math.max(1, dto.days || 1);
+      const adminFee = Math.round(dto.amount * 0.1);
+      const managerShare = dto.amount - adminFee;
 
-      /**
-       * CALCULATE COSTS
-       */
-      const amount = manager.dailyInternetFee * days;
-
-      // Admin takes 10%
-      const adminFee = Math.round(amount * 0.1);
-
-      // Manager receives 90%
-      const managerShare = amount - adminFee;
-
-      /**
-       * RECORD ADMIN FEE
-       */
       await queryRunner.manager.save(ServiceFeeSummary, {
         managerId: manager.id,
         amount: adminFee,
         createdAt: new Date(),
       });
 
-      /**
-       * CREDIT MANAGER WALLET
-       */
-      manager.balance = (manager.balance ?? 0) + managerShare;
+      manager.balance += managerShare;
       await queryRunner.manager.save(manager);
 
-      /**
-       * ACTIVATE SUBSCRIBER IF PROVIDED
-       */
       if (dto.subscriberId) {
-        const sub = await queryRunner.manager.findOne(Subscriber, {
-          where: { id: dto.subscriberId },
-        });
+        const sub =
+          await queryRunner.manager.findOne(
+            Subscriber,
+            { where: { id: dto.subscriberId } },
+          );
+        if (!sub) throw new BadRequestException();
 
-        if (!sub) throw new BadRequestException('Subscriber not found');
-
-        const now = new Date();
-        sub.daysPurchased = days;
-        sub.expiryDate = new Date(
-          now.getTime() + days * 24 * 60 * 60 * 1000,
-        );
         sub.active = true;
-        sub.manager = manager;
-
+        sub.expiryDate = new Date(
+          Date.now() +
+            dto.days * 24 * 60 * 60 * 1000,
+        );
         await queryRunner.manager.save(sub);
       }
 
-      /**
-       * WEEKLY FEE AUTO-DEDUCTION
-       */
-      if (
-        manager.pendingWeeklyFee &&
-        manager.pendingWeeklyFee > 0 &&
-        manager.balance >= manager.pendingWeeklyFee
-      ) {
-        manager.balance -= manager.pendingWeeklyFee;
-        manager.pendingWeeklyFee = 0;
-        manager.pendingGraceExpiry = null;
-
-        await queryRunner.manager.save(manager);
-
-        await queryRunner.manager
-          .createQueryBuilder()
-          .update(Subscriber)
-          .set({ active: true })
-          .where('managerId = :id', { id: manager.id })
-          .execute();
-      }
-
-      // ✅ COMMIT TRANSACTION
       await queryRunner.commitTransaction();
 
-      /**
-       * AUDIT LOG (POST-COMMIT, NEVER BLOCKING)
-       */
-      try {
-        await this.auditLogs.log(
-          'PAYMENT_PROCESSED',
-          manager.id,
-          {
-            amount,
-            days,
-            method: dto.method,
-            subscriberId: dto.subscriberId ?? null,
-          },
-        );
-      } catch (auditError) {
-        this.logger.warn(
-          `Audit log failed for manager ${manager.id}: ${auditError.message}`,
-        );
+      if (dto.portalSessionId) {
+        await this.portalService.grantAccess({
+          sessionId: dto.portalSessionId,
+          days: dto.days,
+          amountPaid: dto.amount,
+          paymentReference: dto.mobileReference,
+        });
       }
 
-      this.logger.log(
-        `Payment processed: manager=${manager.id}, amount=${amount}, method=${dto.method}`,
+      await this.auditLogs.log(
+        'PAYMENT_PROCESSED',
+        manager.id,
+        dto,
       );
 
-      return {
-        ok: true,
-        days,
-        amount,
-        adminFee,
-        managerShare,
-        paymentMethod: dto.method,
-      };
-    } catch (error) {
+      return { ok: true };
+    } catch (e) {
       await queryRunner.rollbackTransaction();
-      this.logger.error(
-        `Payment failed for manager ${dto.managerId}: ${error.message}`,
-      );
-      throw error;
+      throw e;
     } finally {
       await queryRunner.release();
     }

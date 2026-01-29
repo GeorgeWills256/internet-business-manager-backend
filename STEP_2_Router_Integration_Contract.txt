@@ -1,0 +1,46 @@
+
+STEP 2 — ROUTER INTEGRATION CONTRACT
+Internet Business Manager (IBM)
+
+1. Role of the System
+The Internet Business Manager is not an Internet Service Provider.
+It manages access decisions while routers enforce network traffic rules.
+
+2. Supported Routers
+Tier 1: MikroTik, Ubiquiti (UniFi), pfSense, OPNsense
+Tier 2: TP-Link Omada, OpenWRT-based routers
+Not supported: Home routers without API or captive portal support
+
+3. Integration Models
+A) Captive Portal (Primary)
+- Subscriber connects to Wi-Fi
+- Router redirects to captive portal
+- Subscriber pays or enters access code
+- Backend authorizes or denies access
+- Router enforces decision
+
+B) Router API Control (Secondary)
+- Used for time extensions, disconnections, admin actions
+- Backend sends allow/deny commands with expiry time
+
+4. Router Integration Contract
+Router to Backend Request:
+POST /router/authorize
+Payload includes routerId, managerId, client MAC/IP, and action
+
+Backend to Router Response:
+allowed: true/false
+expiresAt
+businessName
+message or denial reason
+
+5. Manager Responsibilities
+- Configure router API / credentials
+- Set captive portal redirect URL
+- Define business name and branding
+- Define pricing
+
+6. Legal and Technical Positioning
+- Backend does not touch traffic
+- Router owner retains responsibility
+- System only manages authorization logic

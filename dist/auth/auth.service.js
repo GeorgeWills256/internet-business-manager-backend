@@ -72,11 +72,11 @@ let AuthService = class AuthService {
     }
     async login(identifier, password) {
         const user = await this.validateUser(identifier, password);
-        let role = 'SALES';
+        let role = 'salesperson';
         if (user.isManager)
-            role = 'MANAGER';
+            role = 'manager';
         if (user.isAdmin)
-            role = 'ADMIN';
+            role = 'admin';
         const payload = {
             sub: user.id,
             role,
@@ -88,10 +88,14 @@ let AuthService = class AuthService {
                 role,
                 phone: user.phone,
                 username: user.username,
+                businessName: user.businessName,
             },
         };
     }
     async registerManager(dto) {
+        if (!dto.businessName || !dto.businessName.trim()) {
+            throw new common_1.BadRequestException('Business name is required');
+        }
         const exists = await this.managersRepo.findOne({
             where: [{ phone: dto.phone }, { username: dto.username }],
         });
@@ -103,6 +107,7 @@ let AuthService = class AuthService {
             phone: dto.phone,
             username: dto.username,
             passwordHash,
+            businessName: dto.businessName.trim(),
             isManager: true,
             isAdmin: false,
         });
@@ -111,6 +116,7 @@ let AuthService = class AuthService {
             ok: true,
             message: 'Manager registered successfully',
             managerId: manager.id,
+            businessName: manager.businessName,
         };
     }
 };

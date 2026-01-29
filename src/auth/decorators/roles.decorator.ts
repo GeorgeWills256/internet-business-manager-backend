@@ -6,10 +6,7 @@ import { SetMetadata } from '@nestjs/common';
 export const ROLES_KEY = 'roles';
 
 /**
- * System roles
- * - admin: system owner
- * - manager: internet business owner
- * - salesperson: delegated sales user
+ * System roles (STANDARDIZED — lowercase)
  */
 export type Role = 'admin' | 'manager' | 'salesperson';
 

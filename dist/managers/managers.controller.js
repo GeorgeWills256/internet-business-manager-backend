@@ -15,24 +15,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ManagersController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
-const managers_service_1 = require("./managers.service");
 const create_manager_dto_1 = require("./dto/create-manager.dto");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const roles_guard_1 = require("../auth/guards/roles.guard");
 const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 let ManagersController = class ManagersController {
-    constructor(managersService) {
-        this.managersService = managersService;
-    }
-    async create(dto) {
-        return this.managersService.create(dto);
-    }
-    async findAll() {
-        return this.managersService.findAll();
-    }
-    async getById(id) {
-        return this.managersService.getById(Number(id));
-    }
+    constructor() { }
+    async create(dto) { }
+    async findAll() { }
+    async getById(id) { }
 };
 exports.ManagersController = ManagersController;
 __decorate([
@@ -72,6 +63,6 @@ exports.ManagersController = ManagersController = __decorate([
     (0, swagger_1.ApiBearerAuth)(),
     (0, common_1.Controller)('managers'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
-    __metadata("design:paramtypes", [managers_service_1.ManagersService])
+    __metadata("design:paramtypes", [])
 ], ManagersController);
 //# sourceMappingURL=managers.controller.js.map

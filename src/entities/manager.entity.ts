@@ -18,7 +18,6 @@ export class Manager {
    * AUTH & IDENTITY
    * =========================
    */
-
   @Index({ unique: true })
   @Column({ nullable: true })
   phone?: string;
@@ -32,52 +31,73 @@ export class Manager {
 
   /**
    * =========================
-   * ROLES / PERMISSIONS
+   * BUSINESS IDENTITY
    * =========================
    */
+  @Column({ type: 'varchar', length: 120 })
+  businessName: string;
 
   /**
-   * System-level admin (YOU / platform owner)
-   * - Can view metrics
-   * - Can suspend managers
-   * - Can audit system
+   * =========================
+   * CAPTIVE PORTAL BRANDING
+   * =========================
+   */
+  @Column({
+    type: 'varchar',
+    length: 255,
+    default: 'Welcome! Please purchase internet access to continue.',
+  })
+  welcomeMessage: string;
+
+  /**
+   * =========================
+   * PLATFORM TIER
+   * =========================
+   */
+  @Column({
+    type: 'varchar',
+    length: 10,
+    default: 'TIER_1',
+  })
+  tier: 'TIER_1' | 'TIER_2' | 'TIER_3';
+
+  /**
+   * =========================
+   * MONTHLY SUBSCRIPTION (CANONICAL)
+   * =========================
+   *
+   * Rule:
+   * - NULL  → PAID
+   * - SET   → PENDING
+   */
+  @Column({ type: 'timestamptz', nullable: true })
+  subscriptionDueAt?: Date;
+
+  /**
+   * =========================
+   * ROLES / PERMISSIONS
+   * =========================
    */
   @Column({ default: false })
   isAdmin: boolean;
 
-  /**
-   * Business manager (router owner)
-   */
   @Column({ default: true })
   isManager: boolean;
 
-  /**
-   * Manager can also act as salesperson
-   */
   @Column({ default: true })
   canActAsSalesperson: boolean;
 
   /**
    * =========================
-   * ABUSE / ENFORCEMENT FLAGS
+   * ABUSE / MANUAL SUSPENSION
    * =========================
-   */
-
-  /**
-   * Hard suspension (admin-enforced)
    */
   @Column({ default: false })
   isSuspended: boolean;
 
-  /**
-   * Optional suspension expiry
-   */
   @Column({ type: 'timestamptz', nullable: true })
   suspendedUntil?: Date;
 
-  /**
-   * Reason shown to manager
-   */
   @Column({ type: 'text', nullable: true })
   suspensionReason?: string;
 
@@ -86,7 +106,6 @@ export class Manager {
    * BUSINESS CONFIG
    * =========================
    */
-
   @Column({ type: 'int', default: 5 })
   dailyFreeCodesLimit: number;
 
@@ -98,29 +117,14 @@ export class Manager {
    * FINANCIAL TRACKING
    * =========================
    */
-
   @Column({ type: 'integer', default: 0 })
   balance: number;
 
   /**
-   * Weekly platform fee owed to admin
-   */
-  @Column({ type: 'integer', default: 0 })
-  pendingWeeklyFee: number;
-
-  /**
-   * Grace period before blocking services
-   */
-  @Column({ type: 'timestamptz', nullable: true })
-  pendingGraceExpiry?: Date;
-
-  /**
    * =========================
    * FREE CODE TRACKING
-   * (RESETS DAILY)
    * =========================
    */
-
   @Column({ type: 'integer', default: 0 })
   freeCodesIssuedToday: number;
 
@@ -132,7 +136,6 @@ export class Manager {
    * RELATIONS
    * =========================
    */
-
   @OneToMany(() => Subscriber, (s) => s.manager)
   subscribers: Subscriber[];
 

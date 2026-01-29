@@ -12,7 +12,6 @@ const typeorm_1 = require("@nestjs/typeorm");
 const schedule_1 = require("@nestjs/schedule");
 const manager_entity_1 = require("../entities/manager.entity");
 const abuse_module_1 = require("../abuse/abuse.module");
-const enforcement_cron_1 = require("./enforcement.cron");
 const reset_counters_cron_1 = require("./reset.counters.cron");
 let CronModule = class CronModule {
 };
@@ -25,7 +24,6 @@ exports.CronModule = CronModule = __decorate([
             abuse_module_1.AbuseModule,
         ],
         providers: [
-            enforcement_cron_1.EnforcementCron,
             reset_counters_cron_1.ResetCountersCron,
         ],
     })

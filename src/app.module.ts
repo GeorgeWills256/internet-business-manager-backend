@@ -11,6 +11,8 @@ import { AuthModule } from './auth/auth.module';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { AbuseModule } from './abuse/abuse.module';
 import { AdminModule } from './admin/admin.module';
+import { PortalModule } from './portal/portal.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 /**
  * CONTROLLERS
@@ -25,22 +27,19 @@ import { Subscriber } from './entities/subscriber.entity';
 import { Code } from './entities/code.entity';
 import { ServiceFeeSummary } from './entities/service-fee-summary.entity';
 import { AuditLog } from './entities/audit-log.entity';
+import { PortalSession } from './portal/entities/portal-session.entity';
+import { MobileMoneyTransaction } from './payments/entities/mobile-money-transaction.entity';
+import { SystemRevenue } from './entities/system-revenue.entity';
 
 @Module({
   controllers: [HealthController],
 
   imports: [
-    /**
-     * ENV CONFIG
-     */
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
     }),
 
-    /**
-     * RATE LIMITING
-     */
     ThrottlerModule.forRoot([
       {
         ttl: 60,
@@ -48,14 +47,8 @@ import { AuditLog } from './entities/audit-log.entity';
       },
     ]),
 
-    /**
-     * CRON / SCHEDULER (OFFICIAL)
-     */
     ScheduleModule.forRoot(),
 
-    /**
-     * DATABASE
-     */
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -70,22 +63,23 @@ import { AuditLog } from './entities/audit-log.entity';
           Code,
           ServiceFeeSummary,
           AuditLog,
+          PortalSession,
+          MobileMoneyTransaction,
+          SystemRevenue,
         ],
 
         synchronize: true,
         logging: false,
-
         extra: { max: 10 },
       }),
     }),
 
-    /**
-     * APPLICATION MODULES
-     */
     AuthModule,
     AuditLogsModule,
     AbuseModule,
     AdminModule,
+    PortalModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}

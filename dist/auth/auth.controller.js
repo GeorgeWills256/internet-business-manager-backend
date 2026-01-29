@@ -31,16 +31,18 @@ let AuthController = class AuthController {
 exports.AuthController = AuthController;
 __decorate([
     (0, common_1.Post)('login'),
-    (0, swagger_1.ApiOperation)({ summary: 'Login using phone or username and password' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Login using phone or username and password',
+    }),
     (0, swagger_1.ApiResponse)({
         status: 200,
         description: 'JWT access token returned',
         schema: {
             example: {
-                access_token: 'eyJhbGciOiJIUzI1NiIs...',
+                accessToken: 'eyJhbGciOiJIUzI1NiIs...',
                 user: {
                     id: 1,
-                    role: 'manager',
+                    role: 'MANAGER',
                     phone: '2567xxxxxxx',
                     username: 'john_doe',
                 },
@@ -54,7 +56,9 @@ __decorate([
 ], AuthController.prototype, "login", null);
 __decorate([
     (0, common_1.Post)('register-manager'),
-    (0, swagger_1.ApiOperation)({ summary: 'Register a new manager (admin-only later)' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Register a new manager (admin-only later)',
+    }),
     (0, swagger_1.ApiResponse)({
         status: 201,
         description: 'Manager registered successfully',

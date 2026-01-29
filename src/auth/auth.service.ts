@@ -1,11 +1,18 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { Manager } from '../entities/manager.entity';
 
-export type UserRole = 'ADMIN' | 'MANAGER' | 'SALES';
+/**
+ * 🔑 STANDARDIZED ROLES (LOWERCASE)
+ */
+export type UserRole = 'admin' | 'manager' | 'salesperson';
 
 @Injectable()
 export class AuthService {
@@ -16,8 +23,11 @@ export class AuthService {
   ) {}
 
   /**
-   * Validate user by phone OR username + password
+   * =========================
+   * AUTHENTICATION
+   * =========================
    */
+
   async validateUser(
     identifier: string,
     password: string,
@@ -39,19 +49,23 @@ export class AuthService {
   }
 
   /**
-   * Login and return JWT
+   * =========================
+   * LOGIN
+   * =========================
    */
   async login(identifier: string, password: string) {
     const user = await this.validateUser(identifier, password);
 
-    // ✅ Determine role (ORDER MATTERS)
-    let role: UserRole = 'SALES';
-    if (user.isManager) role = 'MANAGER';
-    if (user.isAdmin) role = 'ADMIN';
+    /**
+     * ✅ ROLE RESOLUTION (ORDER MATTERS)
+     */
+    let role: UserRole = 'salesperson';
+    if (user.isManager) role = 'manager';
+    if (user.isAdmin) role = 'admin';
 
     const payload = {
       sub: user.id,
-      role, // 🔑 REQUIRED for AdminGuard
+      role, // ✅ LOWERCASE (CRITICAL FIX)
     };
 
     return {
@@ -61,18 +75,26 @@ export class AuthService {
         role,
         phone: user.phone,
         username: user.username,
+        businessName: user.businessName,
       },
     };
   }
 
   /**
-   * Register a manager (admin-only later)
+   * =========================
+   * MANAGER REGISTRATION
+   * =========================
    */
   async registerManager(dto: {
     phone: string;
     username: string;
     password: string;
+    businessName: string;
   }) {
+    if (!dto.businessName || !dto.businessName.trim()) {
+      throw new BadRequestException('Business name is required');
+    }
+
     const exists = await this.managersRepo.findOne({
       where: [{ phone: dto.phone }, { username: dto.username }],
     });
@@ -87,6 +109,7 @@ export class AuthService {
       phone: dto.phone,
       username: dto.username,
       passwordHash,
+      businessName: dto.businessName.trim(),
       isManager: true,
       isAdmin: false,
     });
@@ -97,6 +120,7 @@ export class AuthService {
       ok: true,
       message: 'Manager registered successfully',
       managerId: manager.id,
+      businessName: manager.businessName,
     };
   }
 }

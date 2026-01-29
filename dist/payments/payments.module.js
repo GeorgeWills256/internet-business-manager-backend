@@ -14,6 +14,11 @@ const payments_controller_1 = require("./payments.controller");
 const manager_entity_1 = require("../entities/manager.entity");
 const subscriber_entity_1 = require("../entities/subscriber.entity");
 const service_fee_summary_entity_1 = require("../entities/service-fee-summary.entity");
+const mobile_money_transaction_entity_1 = require("./entities/mobile-money-transaction.entity");
+const portal_module_1 = require("../portal/portal.module");
+const audit_logs_module_1 = require("../audit-logs/audit-logs.module");
+const abuse_module_1 = require("../abuse/abuse.module");
+const notification_module_1 = require("../notifications/notification.module");
 let PaymentsModule = class PaymentsModule {
 };
 exports.PaymentsModule = PaymentsModule;
@@ -24,11 +29,19 @@ exports.PaymentsModule = PaymentsModule = __decorate([
                 manager_entity_1.Manager,
                 subscriber_entity_1.Subscriber,
                 service_fee_summary_entity_1.ServiceFeeSummary,
+                mobile_money_transaction_entity_1.MobileMoneyTransaction,
             ]),
+            portal_module_1.PortalModule,
+            audit_logs_module_1.AuditLogsModule,
+            abuse_module_1.AbuseModule,
+            notification_module_1.NotificationModule,
         ],
-        controllers: [payments_controller_1.PaymentsController],
-        providers: [payments_service_1.PaymentsService],
-        exports: [payments_service_1.PaymentsService],
+        controllers: [
+            payments_controller_1.PaymentsController,
+        ],
+        providers: [
+            payments_service_1.PaymentsService,
+        ],
     })
 ], PaymentsModule);
 //# sourceMappingURL=payments.module.js.map

@@ -26,28 +26,26 @@ let PaymentsController = class PaymentsController {
         this.paymentsService = paymentsService;
     }
     async process(dto) {
-        return this.paymentsService.processPayment(dto);
+        return this.paymentsService.processPayment({
+            managerId: dto.managerId,
+            subscriberId: dto.subscriberId,
+            portalSessionId: dto.portalSessionId,
+            method: dto.method,
+            mobileReference: dto.mobileReference,
+            days: 0,
+            amount: 0
+        });
     }
 };
 exports.PaymentsController = PaymentsController;
 __decorate([
     (0, common_1.Post)('process'),
     (0, roles_decorator_1.Roles)('manager', 'salesperson'),
-    (0, throttler_1.Throttle)({
-        default: {
-            ttl: 60,
-            limit: 10,
-        },
-    }),
+    (0, throttler_1.Throttle)({ default: { ttl: 60, limit: 10 } }),
     (0, swagger_1.ApiOperation)({
-        summary: 'Process payment and optionally activate subscriber',
+        summary: 'Process subscriber or portal payment',
     }),
-    (0, swagger_1.ApiResponse)({
-        status: 200,
-        description: 'Payment processed successfully',
-    }),
-    (0, swagger_1.ApiResponse)({ status: 401, description: 'Unauthorized' }),
-    (0, swagger_1.ApiResponse)({ status: 403, description: 'Forbidden' }),
+    (0, swagger_1.ApiResponse)({ status: 200 }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [process_payment_dto_1.ProcessPaymentDto]),

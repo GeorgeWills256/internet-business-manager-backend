@@ -3,7 +3,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import { Manager } from '../entities/manager.entity';
 import { AbuseModule } from '../abuse/abuse.module';
-import { EnforcementCron } from './enforcement.cron';
 import { ResetCountersCron } from './reset.counters.cron';
 
 @Module({
@@ -13,7 +12,6 @@ import { ResetCountersCron } from './reset.counters.cron';
     AbuseModule,
   ],
   providers: [
-    EnforcementCron,              // abuse enforcement
     ResetCountersCron,            // daily resets
   ],
 })

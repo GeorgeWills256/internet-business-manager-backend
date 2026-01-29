@@ -16,12 +16,17 @@ const auth_module_1 = require("./auth/auth.module");
 const audit_logs_module_1 = require("./audit-logs/audit-logs.module");
 const abuse_module_1 = require("./abuse/abuse.module");
 const admin_module_1 = require("./admin/admin.module");
+const portal_module_1 = require("./portal/portal.module");
+const dashboard_module_1 = require("./dashboard/dashboard.module");
 const health_controller_1 = require("./health/health.controller");
 const manager_entity_1 = require("./entities/manager.entity");
 const subscriber_entity_1 = require("./entities/subscriber.entity");
 const code_entity_1 = require("./entities/code.entity");
 const service_fee_summary_entity_1 = require("./entities/service-fee-summary.entity");
 const audit_log_entity_1 = require("./entities/audit-log.entity");
+const portal_session_entity_1 = require("./portal/entities/portal-session.entity");
+const mobile_money_transaction_entity_1 = require("./payments/entities/mobile-money-transaction.entity");
+const system_revenue_entity_1 = require("./entities/system-revenue.entity");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -53,6 +58,9 @@ exports.AppModule = AppModule = __decorate([
                         code_entity_1.Code,
                         service_fee_summary_entity_1.ServiceFeeSummary,
                         audit_log_entity_1.AuditLog,
+                        portal_session_entity_1.PortalSession,
+                        mobile_money_transaction_entity_1.MobileMoneyTransaction,
+                        system_revenue_entity_1.SystemRevenue,
                     ],
                     synchronize: true,
                     logging: false,
@@ -63,6 +71,8 @@ exports.AppModule = AppModule = __decorate([
             audit_logs_module_1.AuditLogsModule,
             abuse_module_1.AbuseModule,
             admin_module_1.AdminModule,
+            portal_module_1.PortalModule,
+            dashboard_module_1.DashboardModule,
         ],
     })
 ], AppModule);

@@ -21,7 +21,6 @@ export class AbuseService {
    */
   assertAllowed(manager: Manager, action: AbuseAction): void {
     this.checkSuspension(manager);
-    this.checkGracePeriod(manager, action);
     this.checkFreeCodeLimit(manager, action);
   }
 
@@ -29,54 +28,34 @@ export class AbuseService {
    * =========================
    * SUSPENSION CHECK
    * =========================
+   * Manual or automatic admin suspension
    */
-  public checkSuspension(manager: Manager): void {
+  private checkSuspension(manager: Manager): void {
     if (manager.isSuspended) {
+      // Auto-unsuspend if suspension expired
+      if (
+        manager.suspendedUntil &&
+        manager.suspendedUntil < new Date()
+      ) {
+        manager.isSuspended = false;
+        manager.suspendedUntil = null;
+        manager.suspensionReason = null;
+        return;
+      }
+
       throw new ForbiddenException(
         manager.suspensionReason ||
           'Account suspended. Contact support.',
       );
     }
-
-    // Auto-unsuspend if suspension expired
-    if (
-      manager.suspendedUntil &&
-      new Date(manager.suspendedUntil) < new Date()
-    ) {
-      manager.isSuspended = false;
-      manager.suspendedUntil = null;
-      manager.suspensionReason = null;
-    }
   }
 
   /**
    * =========================
-   * GRACE PERIOD CHECK
+   * FREE CODE ABUSE LIMIT
    * =========================
    */
-  public checkGracePeriod(
-    manager: Manager,
-    action: AbuseAction,
-  ): void {
-    // Payments are always allowed
-    if (action === AbuseAction.RECEIVE_PAYMENT) return;
-
-    if (
-      manager.pendingGraceExpiry &&
-      new Date(manager.pendingGraceExpiry) < new Date()
-    ) {
-      throw new ForbiddenException(
-        'Grace period expired. Payment required.',
-      );
-    }
-  }
-
-  /**
-   * =========================
-   * FREE CODE LIMIT CHECK
-   * =========================
-   */
-  public checkFreeCodeLimit(
+  private checkFreeCodeLimit(
     manager: Manager,
     action: AbuseAction,
   ): void {

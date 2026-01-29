@@ -19,18 +19,15 @@ async function bootstrap() {
 
   /**
    * ✅ CORS (Swagger + Frontend safe)
-   *
-   * - Allows localhost, 127.0.0.1, and deployed frontend
-   * - Fixes "Failed to fetch" in Swagger
    */
   app.enableCors({
-    origin: true, // 👈 reflects request origin safely
+    origin: true, // reflect request origin
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   });
 
   /**
-   * ✅ SWAGGER (JWT AUTH ENABLED)
+   * ✅ SWAGGER (JWT AUTH — FIXED)
    */
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Internet Business Manager API')
@@ -43,8 +40,10 @@ async function bootstrap() {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
+        name: 'Authorization',
+        in: 'header',
       },
-      'access-token',
+      'JWT-auth', // 🔑 MUST MATCH controller decorators
     )
     .build();
 

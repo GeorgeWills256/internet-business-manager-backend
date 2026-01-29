@@ -9,19 +9,23 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   /**
+   * =========================
    * LOGIN
+   * =========================
    */
   @Post('login')
-  @ApiOperation({ summary: 'Login using phone or username and password' })
+  @ApiOperation({
+    summary: 'Login using phone or username and password',
+  })
   @ApiResponse({
     status: 200,
     description: 'JWT access token returned',
     schema: {
       example: {
-        access_token: 'eyJhbGciOiJIUzI1NiIs...',
+        accessToken: 'eyJhbGciOiJIUzI1NiIs...',
         user: {
           id: 1,
-          role: 'manager',
+          role: 'MANAGER',
           phone: '2567xxxxxxx',
           username: 'john_doe',
         },
@@ -33,11 +37,15 @@ export class AuthController {
   }
 
   /**
+   * =========================
    * REGISTER MANAGER
-   * (will be admin-protected in Phase B2)
+   * =========================
+   * (Admin-only in later phase)
    */
   @Post('register-manager')
-  @ApiOperation({ summary: 'Register a new manager (admin-only later)' })
+  @ApiOperation({
+    summary: 'Register a new manager (admin-only later)',
+  })
   @ApiResponse({
     status: 201,
     description: 'Manager registered successfully',
@@ -55,6 +63,7 @@ export class AuthController {
       phone: string;
       username: string;
       password: string;
+      businessName: string; // ✅ REQUIRED
     },
   ) {
     return this.authService.registerManager(dto);

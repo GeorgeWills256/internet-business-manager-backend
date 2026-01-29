@@ -18,27 +18,19 @@ var AbuseAction;
 let AbuseService = class AbuseService {
     assertAllowed(manager, action) {
         this.checkSuspension(manager);
-        this.checkGracePeriod(manager, action);
         this.checkFreeCodeLimit(manager, action);
     }
     checkSuspension(manager) {
         if (manager.isSuspended) {
+            if (manager.suspendedUntil &&
+                manager.suspendedUntil < new Date()) {
+                manager.isSuspended = false;
+                manager.suspendedUntil = null;
+                manager.suspensionReason = null;
+                return;
+            }
             throw new common_1.ForbiddenException(manager.suspensionReason ||
                 'Account suspended. Contact support.');
-        }
-        if (manager.suspendedUntil &&
-            new Date(manager.suspendedUntil) < new Date()) {
-            manager.isSuspended = false;
-            manager.suspendedUntil = null;
-            manager.suspensionReason = null;
-        }
-    }
-    checkGracePeriod(manager, action) {
-        if (action === AbuseAction.RECEIVE_PAYMENT)
-            return;
-        if (manager.pendingGraceExpiry &&
-            new Date(manager.pendingGraceExpiry) < new Date()) {
-            throw new common_1.ForbiddenException('Grace period expired. Payment required.');
         }
     }
     checkFreeCodeLimit(manager, action) {

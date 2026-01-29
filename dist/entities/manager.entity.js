@@ -35,6 +35,30 @@ __decorate([
     __metadata("design:type", String)
 ], Manager.prototype, "passwordHash", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: 120 }),
+    __metadata("design:type", String)
+], Manager.prototype, "businessName", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        type: 'varchar',
+        length: 255,
+        default: 'Welcome! Please purchase internet access to continue.',
+    }),
+    __metadata("design:type", String)
+], Manager.prototype, "welcomeMessage", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        type: 'varchar',
+        length: 10,
+        default: 'TIER_1',
+    }),
+    __metadata("design:type", String)
+], Manager.prototype, "tier", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'timestamptz', nullable: true }),
+    __metadata("design:type", Date)
+], Manager.prototype, "subscriptionDueAt", void 0);
+__decorate([
     (0, typeorm_1.Column)({ default: false }),
     __metadata("design:type", Boolean)
 ], Manager.prototype, "isAdmin", void 0);
@@ -70,14 +94,6 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'integer', default: 0 }),
     __metadata("design:type", Number)
 ], Manager.prototype, "balance", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: 'integer', default: 0 }),
-    __metadata("design:type", Number)
-], Manager.prototype, "pendingWeeklyFee", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: 'timestamptz', nullable: true }),
-    __metadata("design:type", Date)
-], Manager.prototype, "pendingGraceExpiry", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'integer', default: 0 }),
     __metadata("design:type", Number)
