@@ -25,6 +25,21 @@ export class AbuseService {
   }
 
   /**
+   * Non-throwing helper that returns whether the action is allowed.
+   * Returns `true` when allowed, `false` when a ForbiddenException would
+   * have been thrown by `assertAllowed`. Any other exception bubbles up.
+   */
+  isAllowed(manager: Manager, action: AbuseAction): boolean {
+    try {
+      this.assertAllowed(manager, action);
+      return true;
+    } catch (err) {
+      if (err instanceof ForbiddenException) return false;
+      throw err;
+    }
+  }
+
+  /**
    * =========================
    * SUSPENSION CHECK
    * =========================

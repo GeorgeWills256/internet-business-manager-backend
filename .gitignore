@@ -1,21 +1,50 @@
-# dependencies
-/node_modules/
+# ======================
+# Dependencies
+# ======================
+node_modules/
 
-# production build
-# dist   <-- remove this line completely
+# ======================
+# Build output
+# ======================
+dist/
 
-# environment files
+# ======================
+# Environment variables
+# ======================
 .env
-.env.* 
+.env.*
+!.env.example
 
+# ======================
 # Logs
+# ======================
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
-# IDE folders
+# ======================
+# Coverage / Analysis
+# ======================
+coverage/
+.sonar/
+.sonarcloud.properties
+
+# ======================
+# IDE / Editor
+# ======================
 .vscode/
 .idea/
+*.swp
+*.swo
 
-# NestJS
+# ======================
+# OS files
+# ======================
+.DS_Store
+Thumbs.db
+
+# ======================
+# NestJS / TS
+# ======================
 *.tsbuildinfo

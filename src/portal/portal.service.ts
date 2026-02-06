@@ -32,10 +32,10 @@ const TIER_LIMITS = {
  * =========================
  */
 const DEVICE_MULTIPLIERS = [
-  { devices: 1, multiplier: 1.0 },
+  { devices: 1, multiplier: 1 },
   { devices: 2, multiplier: 1.5 },
   { devices: 3, multiplier: 1.8 },
-  { devices: 4, multiplier: 2.0 },
+  { devices: 4, multiplier: 2 },
 ];
 
 /**
@@ -49,9 +49,9 @@ const PACKAGE_DEFINITIONS: Record<
 > = {
   '2h': { label: '2 Hours', days: 1, factor: 0.5 },
   '4h': { label: '4 Hours', days: 1, factor: 0.7 },
-  '1d': { label: '1 Day', days: 1, factor: 1.0 },
-  '7d': { label: '7 Days', days: 7, factor: 5.0 },
-  '30d': { label: '30 Days', days: 30, factor: 20.0 },
+  '1d': { label: '1 Day', days: 1, factor: 1 },
+  '7d': { label: '7 Days', days: 7, factor: 5 },
+  '30d': { label: '30 Days', days: 30, factor: 20 },
 };
 
 @Injectable()

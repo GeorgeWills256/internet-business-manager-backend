@@ -22,7 +22,7 @@ export class RolesGuard implements CanActivate {
     /**
      * No roles required → allow access
      */
-    if (!requiredRoles || requiredRoles.length === 0) {
+    if (!requiredRoles?.length) {
       return true;
     }
 
@@ -34,7 +34,7 @@ export class RolesGuard implements CanActivate {
       | { userId: number; role: Role }
       | undefined;
 
-    if (!user || !user.role) {
+    if (!user?.role) {
       return false;
     }
 

@@ -36,7 +36,7 @@ export class AuthService {
       where: [{ phone: identifier }, { username: identifier }],
     });
 
-    if (!manager || !manager.passwordHash) {
+    if (!manager?.passwordHash) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -91,7 +91,7 @@ export class AuthService {
     password: string;
     businessName: string;
   }) {
-    if (!dto.businessName || !dto.businessName.trim()) {
+    if (!dto.businessName?.trim()) {
       throw new BadRequestException('Business name is required');
     }
 

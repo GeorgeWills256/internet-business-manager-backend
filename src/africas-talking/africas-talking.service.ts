@@ -3,9 +3,9 @@ import * as AT from 'africastalking';
 
 @Injectable()
 export class AfricasTalkingService {
-  private logger = new Logger('AfricasTalking');
+  private readonly logger = new Logger('AfricasTalking');
 
-  private sms;
+  private readonly sms;
 
   constructor() {
     const username = process.env.AT_USERNAME;
@@ -16,7 +16,7 @@ export class AfricasTalkingService {
       return;
     }
 
-    const africasTalking = AT({
+    const africasTalking = AT.default({
       apiKey,
       username,
     });

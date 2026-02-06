@@ -3,6 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -125,9 +126,8 @@ export class CodesService {
    * 🔑 Random code generator
    */
   private randomCode(): string {
-    return Math.random()
-      .toString(36)
-      .substring(2, 10)
-      .toUpperCase();
+    // Use a cryptographically secure RNG for code generation
+    // 4 bytes -> 8 hex characters (uppercased)
+    return randomBytes(4).toString('hex').toUpperCase();
   }
 }

@@ -123,6 +123,14 @@ export class AdminService {
         ? 'PENDING'
         : 'PAID';
 
+      let actionRequired: string | null = null;
+
+      if (m.isSuspended) {
+        actionRequired = 'ADMIN_SUSPENDED';
+      } else if (subscriptionStatus === 'PENDING') {
+        actionRequired = 'PAY_SUBSCRIPTION';
+      }
+
       return {
         managerId: m.id,
         businessName: m.businessName,
@@ -132,11 +140,7 @@ export class AdminService {
         balance: m.balance,
         isSuspended: m.isSuspended,
         suspensionReason: m.suspensionReason,
-        actionRequired: m.isSuspended
-          ? 'ADMIN_SUSPENDED'
-          : subscriptionStatus === 'PENDING'
-          ? 'PAY_SUBSCRIPTION'
-          : null,
+        actionRequired,
       };
     });
   }
