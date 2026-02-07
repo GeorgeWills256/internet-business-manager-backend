@@ -49,39 +49,28 @@ import { SystemRevenue } from './entities/system-revenue.entity';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
         const dbUrl = config.get<string>('DATABASE_URL') ?? '';
-        const pgSslMode = (config.get<string>('PGSSLMODE') ?? process.env.PGSSLMODE ?? '').toLowerCase();
-        const nodeEnv = (config.get<string>('NODE_ENV') ?? process.env.NODE_ENV ?? 'development').toLowerCase();
+        const pgSslMode = (config.get<string>('PGSSLMODE') ?? '').toLowerCase();
+        const nodeEnv = (config.get<string>('NODE_ENV') ?? 'development').toLowerCase();
         const isProd = nodeEnv === 'production';
 
-        const sslOption = (() => {
-          // If URL or PGSSLMODE explicitly requires TLS
-          if (dbUrl.includes('sslmode=require') || pgSslMode === 'require') {
-            return isProd ? { rejectUnauthorized: true } : { rejectUnauthorized: false };
-          }
+        let ssl: false | { rejectUnauthorized: boolean } = false;
 
-          // Explicitly disable TLS (useful for transaction poolers that don't support SSL)
-          if (dbUrl.includes('sslmode=disable') || pgSslMode === 'disable') {
-            return false;
-          }
+        if (dbUrl.includes('sslmode=require') || pgSslMode === 'require') {
+          ssl = { rejectUnauthorized: isProd };
+        }
 
-          // Allow a 'no-verify' mode to accept self-signed certs (local dev/testing).
-          if (pgSslMode === 'no-verify' || pgSslMode === 'disable-verify') {
-            return { rejectUnauthorized: false };
-          }
+        if (dbUrl.includes('sslmode=disable') || pgSslMode === 'disable') {
+          ssl = false;
+        }
 
-          return false;
-        })();
-
-        // Safe debug: show DB prefix and ssl choice (mask secrets)
-        // Remove or comment out in production.
-        const masked = dbUrl ? `${dbUrl.slice(0, 40)}...` : '<not set>';
-        // eslint-disable-next-line no-console
-        console.log(`DB URL: ${masked}  SSL: ${sslOption ? JSON.stringify(sslOption) : 'false'}`);
+        if (pgSslMode === 'no-verify') {
+          ssl = { rejectUnauthorized: false };
+        }
 
         return {
           type: 'postgres',
           url: dbUrl,
-          ssl: sslOption,
+          ssl,
           entities: [
             Manager,
             Subscriber,
@@ -92,12 +81,11 @@ import { SystemRevenue } from './entities/system-revenue.entity';
             MobileMoneyTransaction,
             SystemRevenue,
           ],
-          synchronize: true,
+          synchronize: false, // ✅ migrations control schema
           logging: false,
-          // pass ssl into extra so pg definitely receives it
           extra: {
             max: 10,
-            ...(sslOption ? { ssl: sslOption } : {}),
+            ...(ssl ? { ssl } : {}),
           },
         };
       },
@@ -110,7 +98,6 @@ import { SystemRevenue } from './entities/system-revenue.entity';
     AdminModule,
     PortalModule,
     DashboardModule,
-    NotificationModule,
   ],
 })
 export class AppModule {}
