@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -23,18 +24,17 @@ export class SubscribersService {
     private readonly managersRepo: Repository<Manager>,
 
     private readonly sms: AfricasTalkingService,
-
-    // ✅ AUDIT LOGGING (additive, safe)
     private readonly auditLogs: AuditLogsService,
   ) {}
 
-  /** REGISTER SUBSCRIBER (inactive by default) */
+  /** REGISTER */
   async register(dto: { phone: string; managerId: number }) {
-    const manager = await this.managersRepo.findOneBy({ id: dto.managerId });
-    if (!manager) {
-      this.logger.warn(`Manager not found: ${dto.managerId}`);
+    const manager = await this.managersRepo.findOneBy({
+      id: dto.managerId,
+    });
+
+    if (!manager)
       throw new NotFoundException('Manager not found');
-    }
 
     const subscriber = this.subscribersRepo.create({
       phone: dto.phone,
@@ -42,14 +42,10 @@ export class SubscribersService {
       active: false,
     });
 
-    this.logger.log(
-      `Registering subscriber ${dto.phone} under manager ${manager.id}`,
-    );
-
     return this.subscribersRepo.save(subscriber);
   }
 
-  /** ACTIVATE SUBSCRIBER (used by payments or codes) */
+  /** ACTIVATE */
   async activate(dto: {
     subscriberId: number;
     days: number;
@@ -60,18 +56,14 @@ export class SubscribersService {
       relations: ['manager'],
     });
 
-    if (!subscriber) {
-      this.logger.warn(`Subscriber not found: ${dto.subscriberId}`);
+    if (!subscriber)
       throw new NotFoundException('Subscriber not found');
-    }
 
-    if (dto.days < 1) {
-      throw new BadRequestException('Invalid activation duration');
-    }
+    if (dto.days < 1)
+      throw new BadRequestException('Invalid duration');
 
-    const now = new Date();
     const expiry = new Date(
-      now.getTime() + dto.days * 24 * 60 * 60 * 1000,
+      Date.now() + dto.days * 86400000,
     );
 
     subscriber.daysPurchased = dto.days;
@@ -80,54 +72,243 @@ export class SubscribersService {
 
     await this.subscribersRepo.save(subscriber);
 
-    this.logger.log(
-      `Activated subscriber ${subscriber.id} for ${dto.days} day(s) via ${dto.source}`,
+    await this.auditLogs.log(
+      'SUBSCRIBER_ACTIVATED',
+      subscriber.manager.id,
+      {
+        subscriberId: subscriber.id,
+        days: dto.days,
+        source: dto.source,
+      },
     );
 
-    // ✅ AUDIT LOG (AFTER SUCCESSFUL ACTIVATION)
-    try {
-      await this.auditLogs.log(
-        'SUBSCRIBER_ACTIVATED',
-        subscriber.manager.id,
-        {
-          subscriberId: subscriber.id,
-          days: dto.days,
-          source: dto.source,
-          expiryDate: expiry,
-        },
-      );
-    } catch (auditError) {
-      // Audit failure must NEVER break activation
-      this.logger.warn(
-        `Audit log failed for subscriber ${subscriber.id}: ${auditError.message}`,
-      );
-    }
-
-    // Send SMS (fire-and-forget, must NOT block activation)
     try {
       await this.sms.sendSMS(
         subscriber.phone,
-        `Your internet has been activated for ${dto.days} day(s). Expiry: ${expiry.toISOString()}`,
+        `Activated for ${dto.days} day(s). Expiry: ${expiry.toISOString()}`,
       );
-    } catch (err) {
-      this.logger.error(
-        `Failed to send SMS to ${subscriber.phone}: ${err.message}`,
+    } catch {}
+
+    return { ok: true };
+  }
+
+  /** TOGGLE STATUS */
+  async toggleStatus(id: number, user: any) {
+    const subscriber =
+      await this.subscribersRepo.findOne({
+        where: { id },
+        relations: ['manager'],
+      });
+
+    if (!subscriber)
+      throw new NotFoundException(
+        'Subscriber not found',
+      );
+
+    if (
+      user.role === 'MANAGER' &&
+      subscriber.manager.id !== user.id
+    ) {
+      throw new ForbiddenException(
+        'You can only modify your subscribers',
       );
     }
+
+    subscriber.active = !subscriber.active;
+
+    await this.subscribersRepo.save(subscriber);
 
     return {
       ok: true,
       subscriberId: subscriber.id,
-      expiryDate: expiry,
-      source: dto.source,
+      active: subscriber.active,
     };
   }
 
-  /** LIST SUBSCRIBERS */
-  async list() {
-    return this.subscribersRepo.find({
-      relations: ['manager'],
-      order: { id: 'DESC' },
-    });
+  /** ADVANCED LIST */
+  async list(query: any, user: any) {
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const qb = this.subscribersRepo
+      .createQueryBuilder('subscriber')
+      .leftJoinAndSelect('subscriber.manager', 'manager')
+      .where('subscriber.deletedAt IS NULL');
+
+    if (user.role === 'MANAGER') {
+      qb.andWhere('manager.id = :managerId', {
+        managerId: user.id,
+      });
+    }
+
+    if (query.search) {
+      qb.andWhere('subscriber.phone ILIKE :search', {
+        search: `%${query.search}%`,
+      });
+    }
+
+    if (query.status) {
+      const isActive =
+        query.status.toUpperCase() === 'ACTIVE';
+      qb.andWhere('subscriber.active = :active', {
+        active: isActive,
+      });
+    }
+
+    if (query.startDate) {
+      qb.andWhere(
+        'subscriber.createdAt >= :startDate',
+        { startDate: query.startDate },
+      );
+    }
+
+    if (query.endDate) {
+      qb.andWhere(
+        'subscriber.createdAt <= :endDate',
+        { endDate: query.endDate },
+      );
+    }
+
+    const allowedSortFields = [
+      'id',
+      'phone',
+      'createdAt',
+      'expiryDate',
+    ];
+
+    const sortField = allowedSortFields.includes(
+      query.sortBy,
+    )
+      ? query.sortBy
+      : 'id';
+
+    const order =
+      query.sortOrder === 'ASC' ? 'ASC' : 'DESC';
+
+    qb.orderBy(`subscriber.${sortField}`, order)
+      .skip(skip)
+      .take(limit);
+
+    const [items, total] =
+      await qb.getManyAndCount();
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      hasNextPage: page * limit < total,
+    };
+  }
+
+  /** STATS */
+  async getStats(user: any) {
+    const qb = this.subscribersRepo
+      .createQueryBuilder('subscriber')
+      .leftJoin('subscriber.manager', 'manager')
+      .where('subscriber.deletedAt IS NULL');
+
+    if (user.role === 'MANAGER') {
+      qb.andWhere('manager.id = :managerId', {
+        managerId: user.id,
+      });
+    }
+
+    const total = await qb.getCount();
+
+    const active = await qb
+      .clone()
+      .andWhere('subscriber.active = true')
+      .getCount();
+
+    const expired = await qb
+      .clone()
+      .andWhere(
+        'subscriber.expiryDate < NOW()',
+      )
+      .getCount();
+
+    return { total, active, expired };
+  }
+
+  /** GET ONE */
+  async getOne(id: number, user: any) {
+    const subscriber =
+      await this.subscribersRepo.findOne({
+        where: { id },
+        relations: ['manager'],
+      });
+
+    if (!subscriber)
+      throw new NotFoundException(
+        'Subscriber not found',
+      );
+
+    if (
+      user.role === 'MANAGER' &&
+      subscriber.manager.id !== user.id
+    ) {
+      throw new ForbiddenException();
+    }
+
+    return subscriber;
+  }
+
+  /** UPDATE */
+  async updateSubscriber(
+    id: number,
+    dto: any,
+    user: any,
+  ) {
+    const subscriber =
+      await this.subscribersRepo.findOne({
+        where: { id },
+        relations: ['manager'],
+      });
+
+    if (!subscriber)
+      throw new NotFoundException(
+        'Subscriber not found',
+      );
+
+    if (
+      user.role === 'MANAGER' &&
+      subscriber.manager.id !== user.id
+    ) {
+      throw new ForbiddenException(
+        'You can only edit your subscribers',
+      );
+    }
+
+    Object.assign(subscriber, dto);
+
+    return this.subscribersRepo.save(
+      subscriber,
+    );
+  }
+
+  /** SOFT DELETE */
+  async softDelete(id: number, user: any) {
+    const subscriber =
+      await this.subscribersRepo.findOne({
+        where: { id },
+        relations: ['manager'],
+      });
+
+    if (!subscriber)
+      throw new NotFoundException();
+
+    if (
+      user.role === 'MANAGER' &&
+      subscriber.manager.id !== user.id
+    ) {
+      throw new ForbiddenException();
+    }
+
+    await this.subscribersRepo.softDelete(id);
+
+    return { ok: true };
   }
 }

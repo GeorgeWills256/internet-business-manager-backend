@@ -4,15 +4,17 @@ import {
   Column,
   ManyToOne,
   Index,
+  CreateDateColumn,
+  DeleteDateColumn,
 } from 'typeorm';
 import { Manager } from './manager.entity';
 
 @Entity()
+@Index(['phone'])
 export class Subscriber {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Index()
   @Column()
   phone: string;
 
@@ -25,8 +27,14 @@ export class Subscriber {
   @Column({ type: 'timestamptz', nullable: true })
   expiryDate?: Date;
 
+  @CreateDateColumn({ type: 'timestamptz' })
+  createdAt: Date;
+
+  @DeleteDateColumn({ type: 'timestamptz' })
+  deletedAt?: Date;
+
   /**
-   * RELATION: MANY SUBSCRIBERS → ONE MANAGER
+   * MANY SUBSCRIBERS → ONE MANAGER
    */
   @ManyToOne(() => Manager, (manager) => manager.subscribers, {
     nullable: false,
